@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Admin/Desktop/ansh/node/radiotune/src/app/page.js"],"sourcesContent":["\"use client\"\n\nimport Image from \"next/image\";\nimport { useDispatch, useSelector } from \"react-redux\";\nimport { searchSelector } from \"./lib/features/searchSlice\";\nimport { useEffect } from \"react\";\n\n\n\nexport default function Home() {\n\n  const search = useSelector(searchSelector) \n  const dispatch = useDispatch()\n  \n\n  return (\n    <div className=\"flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black\">\n      <main className=\"flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start\">\n      RADIO TUNE\n      </main>\n    </div>\n  );\n}\n"],"names":["Home","search","dispatch","className"],"mappings":";;;;;AAEA;AACA;AACA;AACA;;;AALA;;;;;AASe,SAASA;;IAEtB,MAAMC,SAAS,IAAA,2KAAW,EAAC,iKAAc;IACzC,MAAMC,WAAW,IAAA,2KAAW;IAG5B,qBACE,6LAAC;QAAIC,WAAU;kBACb,cAAA,6LAAC;YAAKA,WAAU;sBAAuH;;;;;;;;;;;AAK7I;GAbwBH;;QAEP,2KAAW;QACT,2KAAW;;;KAHNA"}}]
+}

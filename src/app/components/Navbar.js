@@ -29,8 +29,7 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ✅ MERGED FIX: Debounce API requests and calculate suggestions immediately on response
-  // ✅ REPLACED EFFECT: Cleanly handles fetching, filtering, and safe global state updates
+  
 useEffect(() => {
   const trimmedQuery = query.toLowerCase().trim();
   
@@ -62,7 +61,7 @@ useEffect(() => {
       console.error("Failed to parse search payloads:", err);
       setSuggestions([]);
     }
-  }, 400);
+  }, 300);
 
   return () => clearTimeout(delayDebounceFn);
 }, [query, dispatch]);

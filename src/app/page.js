@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { searchSelector } from "./lib/features/searchSlice";
-import { addSuggestion } from "./lib/features/suggestionSlice";
 import { useEffect } from "react";
 
 

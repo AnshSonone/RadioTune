@@ -14,7 +14,7 @@ export async function GET(request) {
     const ytmusic = new YTMusic();
     await ytmusic.initialize();
     
-    const songs = await ytmusic.searchSongs(query);
+    const songs = await ytmusic.search(query);
     
     return NextResponse.json(songs);
   } catch (error) {

@@ -13,13 +13,13 @@ const playerSlice = createSlice({
   initialState,
   reducers: {
     setTrack: (state, action) => {
-      const { track, queue } = action.payload;
-      state.currentTrack = track;
+      // const { track, queue } = action.payload;
+      state.currentTrack = action.payload;
       state.isPlaying = true;
-      if (queue) {
-        state.queue = queue;
-        state.currentIndex = queue.findIndex(t => t.id === track.id);
-      }
+      // if (queue) {
+      //   state.queue = queue;
+      //   state.currentIndex = queue.findIndex(t => t.id === track.id);
+      // }
     },
     setPlaying: (state, action) => {
       state.isPlaying = action.payload;

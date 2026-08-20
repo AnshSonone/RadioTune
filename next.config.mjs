@@ -4,15 +4,27 @@
 const nextConfig = {
    images: {
     remotePatterns: [
-      {
+       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
+        hostname: '*.googleusercontent.com', // Allows lh3, lh4, etc.
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'plus.unsplash.com',
+        hostname: '*.ggpht.com',             // Crucial for YouTube avatar pictures
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.youtube.com',           // For video frame image sheets
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',           // For video frame image sheets
         port: '',
         pathname: '/**',
       },

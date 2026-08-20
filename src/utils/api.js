@@ -16,7 +16,7 @@ const fetchSongs = async (search) => {
     }
 
     const data = await res.json();
-    // console.log("Data fetched successfully:", data);
+  
     return data;
 
   } catch (error) {
@@ -27,33 +27,3 @@ const fetchSongs = async (search) => {
 
 export { fetchSongs };
 
-
-
-//   const fetchSongs = async (search) => {
-
-//     // if(search?.length <= 0 && search.trim() === "") return;
-
-//    try {
-//      const res = await fetch(
-//       `http://localhost:3000/api/search?q=${search}`,
-//       {
-//         method: "GET",
-//         headers: {
-//         "content-type": "application/json",
-//         } 
-//       },
-//     )
-    
-//     const data = await res.json()
-
-//     console.log(data)
-
-//     return data
-//    } catch (error) {
-//     console.error("Error fetching songs:", error);
-//     return [];
-//    }
-    
-//   }
-
-// export {fetchSongs}

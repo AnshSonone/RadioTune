@@ -1,102 +1,46 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
-import { MoreVertical, Music, User, Disc, Play } from "lucide-react";
-import SongTiles from "../components/SongTIles";
+import { MoreVertical, Music, User, Disc, Play, Clock } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
-
-
-
-const DemoAPI = [
-  {
-    trackId: "dQw4w9WgXcQ",
-    title: "Never Gonna Give You Up",
-    artist: "Rick Astley",
-    album: "Whenever You Need Somebody",
-    durationSeconds: 212,
-    imageUrl:
-      "https://images.unsplash.com/photo-1782466240456-d0cb52d1d920?q=80&w=1376&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    youtubeUrl: "https://youtube.com",
-  },
-  {
-    trackId: "kJQP7kiw5Fk",
-    title: "Despacito",
-    artist: "Luis Fonsi ft. Daddy Yankee",
-    album: "Vida",
-    durationSeconds: 229,
-    imageUrl:
-      "https://images.unsplash.com/photo-1786616207540-ccac22814fcb?q=80&w=1476&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    youtubeUrl: "https://youtube.com",
-  },
-  {
-    trackId: "9bZkp7q19f0",
-    title: "Gangnam Style",
-    artist: "PSY",
-    album: "Psy 6th (Six Rules), Part 1",
-    durationSeconds: 239,
-    imageUrl:
-      "https://plus.unsplash.com/premium_photo-1661885493074-e18964497278?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    youtubeUrl: "https://youtube.com",
-  },
-  {
-    trackId: "dQw4w9WgXcQ",
-    title: "Never Gonna Give You Up",
-    artist: "Rick Astley",
-    album: "Whenever You Need Somebody",
-    durationSeconds: 212,
-    imageUrl:
-      "https://images.unsplash.com/photo-1782466240456-d0cb52d1d920?q=80&w=1376&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    youtubeUrl: "https://youtube.com",
-  },
-  {
-    trackId: "kJQP7kiw5Fk",
-    title: "Despacito",
-    artist: "Luis Fonsi ft. Daddy Yankee",
-    album: "Vida",
-    durationSeconds: 229,
-    imageUrl:
-      "https://images.unsplash.com/photo-1786616207540-ccac22814fcb?q=80&w=1476&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    youtubeUrl: "https://youtube.com",
-  },
-  {
-    trackId: "9bZkp7q19f0",
-    title: "Gangnam Style",
-    artist: "PSY",
-    album: "Psy 6th (Six Rules), Part 1",
-    durationSeconds: 239,
-    imageUrl:
-      "https://plus.unsplash.com/premium_photo-1661885493074-e18964497278?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    youtubeUrl: "https://youtube.com",
-  },
-];
-
+import { fetchSongs } from "@/utils/api";
+import TopResult from "../components/TopResult";
+import SongList from "../components/SongList";
 
 export default function SearchResults() {
   // const searchQuery = useSelector((state) => state.search.query || "");
   const [results, setResults] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
-  const searchParams = useSearchParams()
+  const [filtered, setFiltered] = useState([]);
+  const searchParams = useSearchParams();
 
-  const querySearch = searchParams.get('q')
+  const querySearch = searchParams.get("q");
 
-
-  
   useEffect(() => {
     if (!querySearch.trim()) {
       setResults([]);
       return;
     }
-    const lower = querySearch.toLowerCase().trim();
-    setResults(
-      DemoAPI.filter(
-        (item) =>
-          item.title.toLowerCase().includes(lower) ||
-        (item.artist && item.artist.toLowerCase().includes(lower)),
-      ),
-    );
-  }, [querySearch]);  
+
+    const query = async () => {
+      const data = await fetchSongs(querySearch);
+      // 1. Update the state with the API data
+      setResults(data);
+
+      const lower = querySearch?.toLowerCase().trim();
+
+      // 2. FIX: Filter directly from 'data' instead of 'results'
+      const songFiltered = data.filter((item) =>
+        item?.name?.toLowerCase().includes(lower),
+      );
+
+      setFiltered(songFiltered);
+
+      console.log("FILTERED", songFiltered);
+    };
+
+    query();
+  }, [querySearch]);
 
   if (!querySearch.trim()) {
     return (
@@ -107,9 +51,9 @@ export default function SearchResults() {
     );
   }
 
-  const songs = results.filter((i) => i.type === "Song");
-  const artists = results.filter((i) => i.Type === "Artist");
-  const albums = results.filter((i) => i.Type === "Album");
+  const songs = results.filter((i) => i.type === "SONG");
+  const artists = results.filter((i) => i.type === "ARTIST");
+  const albums = results.filter((i) => i.type === "ALBUM");
   const topResult = results[0];
 
   return (
@@ -136,46 +80,26 @@ export default function SearchResults() {
             No results found matching &quot;{querySearch}&quot;
           </div>
         ) : (
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-1 gap-8">
             {(activeFilter === "All" || activeFilter === "Artists") && (
               <div className="flex flex-col gap-8">
                 {activeFilter === "All" && topResult && (
-                  <div>
-                    <h2 className="text-xl font-bold mb-4 text-zinc-200">
-                      Top Result
-                    </h2>
-                    <div className="bg-[#121212] border border-zinc-900 p-6 rounded-2xl relative group hover:bg-zinc-800/40 transition cursor-pointer">
-                      <div
-                        className={`w-24 h-20 bg-zinc-800 flex items-center justify-center mb-6 ${topResult.Type === "Artist" ? "rounded-full" : "rounded-xl"}`}
-                      >
-                        {topResult.Type === "Artist" ? (
-                          <User size={40} className="text-zinc-400" />
-                        ) : (
-                          !topResult.imageUrl ?
-                          <Music size={40} className="text-zinc-400" />
-                          :
-                          <Image
-                            src={topResult.imageUrl}
-                            width={100}
-                            height={100}
-                            alt="SongCover"
-                          />
-                        )}
-                      </div>
-                      <h3 className="text-2xl font-black truncate text-white">
-                        {topResult.title}
-                      </h3>
-                      <p className="text-sm text-zinc-400 mt-2 flex items-center gap-1.5">
-                        <span className="capitalize">{topResult.Type}</span>
-                        {topResult.artist && (
-                          <>
-                            • <span>{topResult.artist}</span>
-                          </>
-                        )}
-                      </p>
-                      <button className="absolute bottom-6 right-6 w-12 h-12 bg-white text-black rounded-full flex items-center justify-center">
-                        <Play size={20} fill="black" className="ml-0.5" />
-                      </button>
+                  <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    {/* Left Column: Top Result (Occupies 2 columns) */}
+                    <TopResult topResult={topResult} />
+
+                    {/* Right Column: Song List (Occupies 3 columns) */}
+                    <div className="lg:col-span-3">
+                      <h2 className="text-xl font-bold mb-4 text-zinc-200">
+                        Songs
+                      </h2>
+                      {filtered.slice(1, ).map((song) => {
+                        return (
+                          <div key={song.videoId}>
+                            <SongList song={song} />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -199,10 +123,10 @@ export default function SearchResults() {
                     </div>
                     <div className="min-w-0">
                       <h4 className="text-sm font-semibold truncate">
-                        {a.title}
+                        {a.name}
                       </h4>
                       <p className="text-xs text-zinc-400 mt-0.5">
-                        {a.Followers}
+                        {/* {a.Followers} */}
                       </p>
                     </div>
                   </div>
@@ -224,7 +148,7 @@ export default function SearchResults() {
                 <h2 className="text-xl font-bold mb-4 text-zinc-200">Songs</h2>
                 <div className="flex flex-col bg-zinc-900/20 rounded-2xl border border-zinc-900 overflow-hidden">
                   {songs.map((s, idx) => (
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div key={idx} className="flex items-center gap-4 flex-1 min-w-0">
                       <div className="w-11 h-11 bg-zinc-800 rounded-md flex items-center justify-center relative shrink-0 overflow-hidden">
                         <Music
                           size={16}
@@ -236,16 +160,19 @@ export default function SearchResults() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="text-sm font-semibold truncate">
-                          {s.title}
+                          {s?.name}
                         </h4>
                         <p className="text-xs text-zinc-400 truncate mt-0.5">
-                          {s.artist} • {s.album}
+                          {s.artist?.name} • {s?.album?.albumId}
                         </p>
                       </div>
 
                       <div className="flex items-center gap-4 ml-4 shrink-0">
                         <span className="text-xs text-zinc-500 font-medium hidden sm:flex items-center gap-1">
-                          <Clock size={12} /> {String(s.durationSeconds / 60).slice(0, 4).replace(".", ":")}
+                          <Clock size={12} />{" "}
+                          {String(s.durationSeconds / 60)
+                            .slice(0, 4)
+                            .replace(".", ":")}
                         </span>
                         <button className="text-zinc-400 hover:text-white p-1.5 rounded-full">
                           <MoreVertical size={18} />
@@ -281,28 +208,13 @@ export default function SearchResults() {
                       {al.title}
                     </h4>
                     <p className="text-xs text-zinc-400 truncate">
-                      {al.artist} • {al.Year}
+                      {al?.artist?.name} • {al?.Year}
                     </p>
                   </div>
                 ))}
               </div>
             </div>
           )}
-      </div>
-
-      <div>
-        {/* <div>
-          <h3 className="font-bold text-gray-500">Top Search Result</h3>
-          <div className="space-y-8 sm:space-x-8 my-4 mx-1 w-full sm:grid sm:grid-cols-2 md:grid-cols-3"> */}
-            {/* {results.filter((item) => 
-              item.title.includes(querySearch)
-              
-              <SongTiles
-                item={item}
-               />
-            )} */}
-          {/* </div>
-        </div> */}
       </div>
     </div>
   );
