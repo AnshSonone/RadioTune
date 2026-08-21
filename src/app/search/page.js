@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { MoreVertical, Music, User, Disc, Play, Clock } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { fetchSongs } from "@/utils/api";
 import TopResult from "../components/TopResult";
 import SongList from "../components/SongList";
-
-export const dynamic = 'force-dynamic';
 
 export default function SearchResults() {
   // const searchQuery = useSelector((state) => state.search.query || "");
@@ -57,6 +55,11 @@ export default function SearchResults() {
   const topResult = results[0];
 
   return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#030303] text-zinc-500 flex items-center justify-center">
+        Loading search...
+      </div>
+    }>
     <div className="min-h-screen bg-[#030303] text-white px-4 md:px-12 py-6 select-none">
       <div className="max-w-7xl mx-auto">
         <div className="flex gap-3 overflow-x-auto pb-4 border-b border-zinc-800 scrollbar-none">
@@ -220,5 +223,6 @@ export default function SearchResults() {
           )}
       </div>
     </div>
+    </Suspense>
   );
 }
