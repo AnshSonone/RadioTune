@@ -7,6 +7,8 @@ import { fetchSongs } from "@/utils/api";
 import TopResult from "../components/TopResult";
 import SongList from "../components/SongList";
 
+export const dynamic = 'force-dynamic';
+
 export default function SearchResults() {
   // const searchQuery = useSelector((state) => state.search.query || "");
   const [results, setResults] = useState([]);
@@ -30,13 +32,11 @@ export default function SearchResults() {
       const lower = querySearch?.toLowerCase().trim();
 
       // 2. FIX: Filter directly from 'data' instead of 'results'
-      const songFiltered = data.filter((item) =>
+      const songFiltered = data?.filter((item) =>
         item?.name?.toLowerCase().includes(lower),
       );
 
       setFiltered(songFiltered);
-
-      console.log("FILTERED", songFiltered);
     };
 
     query();
@@ -93,9 +93,9 @@ export default function SearchResults() {
                       <h2 className="text-xl font-bold mb-4 text-zinc-200">
                         Songs
                       </h2>
-                      {filtered.slice(1, ).map((song) => {
+                      {filtered.slice(1).map((song, index) => {
                         return (
-                          <div key={song.videoId}>
+                          <div key={index}>
                             <SongList song={song} />
                           </div>
                         );
@@ -148,7 +148,10 @@ export default function SearchResults() {
                 <h2 className="text-xl font-bold mb-4 text-zinc-200">Songs</h2>
                 <div className="flex flex-col bg-zinc-900/20 rounded-2xl border border-zinc-900 overflow-hidden">
                   {songs.map((s, idx) => (
-                    <div key={idx} className="flex items-center gap-4 flex-1 min-w-0">
+                    <div
+                      key={idx}
+                      className="flex items-center gap-4 flex-1 min-w-0"
+                    >
                       <div className="w-11 h-11 bg-zinc-800 rounded-md flex items-center justify-center relative shrink-0 overflow-hidden">
                         <Music
                           size={16}
@@ -170,7 +173,7 @@ export default function SearchResults() {
                       <div className="flex items-center gap-4 ml-4 shrink-0">
                         <span className="text-xs text-zinc-500 font-medium hidden sm:flex items-center gap-1">
                           <Clock size={12} />{" "}
-                          {String(s.durationSeconds / 60)
+                          {String(s?.duration / 60)
                             .slice(0, 4)
                             .replace(".", ":")}
                         </span>
