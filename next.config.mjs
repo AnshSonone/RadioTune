@@ -1,45 +1,39 @@
-
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-   images: {
+  images: {
     remotePatterns: [
-       {
+      {
         protocol: 'https',
-        hostname: '*.googleusercontent.com', // Allows lh3, lh4, etc.
-        port: '',
+        hostname: '*.googleusercontent.com',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: '*.ggpht.com',             // Crucial for YouTube avatar pictures
-        port: '',
+        hostname: '*.ggpht.com',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: '*.youtube.com',           // For video frame image sheets
-        port: '',
+        hostname: '*.youtube.com',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: '**',           // For video frame image sheets
-        port: '',
+        hostname: '*.ytimg.com',
         pathname: '/**',
       },
     ],
   },
-   async rewrites() {
-    return [
-      {
-        source: '/yt-proxy/:path*',
-        destination: 'https://youtube.com*',
-      },
-      {
-        source: '/yt-music-proxy/:path*',
-        destination: 'https://music.youtube.com*',
-      },
+  async rewrites() {
+  return [
+    {
+      source: '/yt-proxy/:path*',
+      destination: 'https://www.youtube.com/:path*',
+    },
+    {
+      source: '/yt-music-proxy/:path*',
+      destination: 'https://music.youtube.com/:path*',
+    },
     ];
   },
 };

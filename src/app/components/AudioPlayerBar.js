@@ -17,8 +17,8 @@ export default function AudioPlayerBar() {
 
   // 1. YouTube API Configuration Options
   const opts = {
-    height: "0",
-    width: "0",
+    height: "1",
+    width: "1",
     playerVars: {
       autoplay: 1, // Auto-plays instantly when currentTrack.videoId changes
       controls: 0, // Hides native video elements
@@ -58,21 +58,36 @@ export default function AudioPlayerBar() {
   }, [isPlaying, currentTrack]);
 
   // 3. Keep YouTube Instance playing and volume levels in sync with Redux Actions
-  useEffect(() => {
-    const player = ytPlayerRef.current;
-    if (!player) return;
+  // Effect: sync play/pause ONLY (not tied to volume)
+useEffect(() => {
+  const player = ytPlayerRef.current;
+  if (!player || typeof player.playVideo !== "function") return;
 
-    // Sync Playback State
-    if (isPlaying) {
-      player.playVideo();
-    } else {
-      player.pauseVideo();
-    }
+  if (isPlaying) {
+    player.playVideo();
+  } else {
+    player.pauseVideo();
+  }
+}, [isPlaying, currentTrack]);
 
-    // Sync Volume Level (YouTube API accepts scale integers from 0 to 100)
-    const ytVolumeValue = Math.round(volume * 100);
-    player.setVolume(ytVolumeValue);
-  }, [isPlaying, volume, currentTrack]);
+// Effect: sync volume ONLY (not tied to play/pause)
+useEffect(() => {
+  const player = ytPlayerRef.current;
+  if (!player || typeof player.setVolume !== "function") return;
+
+  player.setVolume(Math.round(volume * 100));
+}, [volume]);
+
+useEffect(() => {
+  const onFreeze = () => console.log("Page frozen by browser");
+  const onResume = () => console.log("Page resumed");
+  document.addEventListener("freeze", onFreeze);
+  document.addEventListener("resume", onResume);
+  return () => {
+    document.removeEventListener("freeze", onFreeze);
+    document.removeEventListener("resume", onResume);
+  };
+}, []);
 
   if (!currentTrack) return null; // Player remains hidden until a song triggers
 
@@ -137,9 +152,10 @@ export default function AudioPlayerBar() {
   return (
     <div className="fixed bottom-0 inset-x-0 h-20 bg-zinc-950 border-t border-zinc-900 px-6 flex items-center justify-between text-white z-50">
       {/* HIDDEN AUDIO ENGINE ELEMENT */}
-      <div className="pointer-events-none absolute h-0 w-0 opacity-0 overflow-hidden">
+      <div className="pointer-events-none fixed left-[9999px] top-0 h-px w-px overflow-hidden">
         <YouTube
-          videoId={currentTrack.videoId}
+        key="persistent-yt-player"
+          videoId={currentTrack?.videoId}
           opts={opts}
           onReady={onPlayerReady}
           onStateChange={onPlayerStateChange}
@@ -199,9 +215,9 @@ export default function AudioPlayerBar() {
             type="range"
             min={0}
             max={duration || 0}
-            value={currentTime ?? ""}
+            value={currentTime ?? 0}
             onChange={handleSeek}
-            className="w-full h-1 bg-zinc-800 rounded appearance-none cursor-pointer accent-white"
+            className={`w-full h-1 bg-zinc-800 rounded appearance-none cursor-pointer accent-white`}
           />
           <span>{formatTime(duration)}</span>
         </div>

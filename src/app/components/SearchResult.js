@@ -6,36 +6,35 @@ import { useSearchParams } from "next/navigation";
 import { fetchSongs } from "@/utils/api";
 import TopResult from "../components/TopResult";
 import SongList from "../components/SongList";
-import Loading from "../components/Loading";
 
-function SearchResultsInner() {
+export default function SearchResults() {
+  // const searchQuery = useSelector((state) => state.search.query || "");
   const [results, setResults] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [filtered, setFiltered] = useState([]);
-  const [progress, setProgress] = useState('w-[0%]')
   const searchParams = useSearchParams();
-  const querySearch = searchParams.get("q") ?? "";
+
+  const querySearch = searchParams.get("q");
 
   useEffect(() => {
     if (!querySearch.trim()) {
       setResults([]);
-      setFiltered([]);
       return;
     }
 
     const query = async () => {
-      
-      setProgress("w-[60%]")
       const data = await fetchSongs(querySearch);
+      // 1. Update the state with the API data
       setResults(data);
-      const lower = querySearch.toLowerCase().trim();
 
+      const lower = querySearch?.toLowerCase().trim();
+
+      // 2. FIX: Filter directly from 'data' instead of 'results'
       const songFiltered = data?.filter((item) =>
         item?.name?.toLowerCase().includes(lower),
       );
 
-      setFiltered(songFiltered ?? []);
-      setProgress('w-full')
+      setFiltered(songFiltered);
     };
 
     query();
@@ -56,9 +55,13 @@ function SearchResultsInner() {
   const topResult = results[0];
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white select-none">
-      { progress !== "w-full" && <Loading progress={progress}/>}
-      <div className="max-w-7xl mx-auto py-3 px-4 md:px-2 ">
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#030303] text-zinc-500 flex items-center justify-center">
+        Loading search...
+      </div>
+    }>
+    <div className="min-h-screen bg-[#030303] text-white px-4 md:px-12 py-6 select-none">
+      <div className="max-w-7xl mx-auto">
         <div className="flex gap-3 overflow-x-auto pb-4 border-b border-zinc-800 scrollbar-none">
           {["All", "Songs", "Artists", "Albums"].map((f) => (
             <button
@@ -74,7 +77,8 @@ function SearchResultsInner() {
             </button>
           ))}
         </div>
-        {results.length === 0 && progress === '100%' ? (
+
+        {results.length === 0 ? (
           <div className="text-center py-24 text-zinc-500">
             No results found matching &quot;{querySearch}&quot;
           </div>
@@ -84,17 +88,21 @@ function SearchResultsInner() {
               <div className="flex flex-col gap-8">
                 {activeFilter === "All" && topResult && (
                   <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    {topResult && progress === "w-full" && <TopResult topResult={topResult} />}
+                    {/* Left Column: Top Result (Occupies 2 columns) */}
+                    <TopResult topResult={topResult} />
 
+                    {/* Right Column: Song List (Occupies 3 columns) */}
                     <div className="lg:col-span-3">
                       <h2 className="text-xl font-bold mb-4 text-zinc-200">
                         Songs
                       </h2>
-                      {filtered.slice(1).map((song, index) => (
-                        <div key={index}>
-                          <SongList song={song} />
-                        </div>
-                      ))}
+                      {filtered.slice(1).map((song, index) => {
+                        return (
+                          <div key={index}>
+                            <SongList song={song} />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -120,7 +128,9 @@ function SearchResultsInner() {
                       <h4 className="text-sm font-semibold truncate">
                         {a.name}
                       </h4>
-                      <p className="text-xs text-zinc-400 mt-0.5"></p>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        {/* {a.Followers} */}
+                      </p>
                     </div>
                   </div>
                   <button className="text-zinc-400 hover:text-white p-2 opacity-0 group-hover:opacity-100 transition rounded-full">
@@ -213,14 +223,6 @@ function SearchResultsInner() {
           )}
       </div>
     </div>
-  );
-}
-
-// FIX: useSearchParams requires a Suspense boundary in the App Router
-export default function SearchResults() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-[#030303]" />}>
-      <SearchResultsInner />
     </Suspense>
   );
 }

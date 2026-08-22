@@ -1,9 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/Navbar";
-import StoreProvider from "./storeProvider";
 import AudioPlayerBar from "./components/AudioPlayerBar";
-   
+import StoreProvider from "./storeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "RadioTune - A Radio Streaming App",
-  description: "A simple radio streaming app built with Next.js and Tailwind CSS.",
+  description:
+    "A simple radio streaming app built with Next.js and Tailwind CSS.",
 };
 
 export default function RootLayout({ children }) {
@@ -28,7 +28,7 @@ export default function RootLayout({ children }) {
     >
       <body className="min-h-full flex flex-col">
         <StoreProvider>
-          <Navbar/>
+            <Navbar />
           {children}
           <AudioPlayerBar />
         </StoreProvider>

@@ -7,6 +7,7 @@ import { useDispatch } from 'react-redux';
 import { addSuggestion } from '../lib/features/suggestionSlice';
 import Link from 'next/link';
 import { fetchSongs } from '@/utils/api';
+import { useRouter } from 'next/navigation';
 
 const RECENT_SEARCHES = ['Linkin Park', 'Chill Lofi Beats', 'Kendrick Lamar'];
 const TRENDING_SEARCHES = ['Blinding Lights Remix', 'Acoustic Hits 2026'];
@@ -17,6 +18,7 @@ export default function Navbar() {
   const [suggestions, setSuggestions] = useState([]);
   const containerRef = useRef(null);
   const dispatch = useDispatch();
+  const router = useRouter()
 
   // Close interface when clicking outside panel boundaries
   useEffect(() => {
@@ -71,6 +73,12 @@ useEffect(() => {
     setQuery(e.target.value);
   };
 
+  const handleEnter = (e) => {
+    if (e.key === "Enter" && query !== "") {
+      router.push(`/search?q=${query.trim()}`)
+    }
+  }
+
   return (
     <nav className="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-3 relative min-h-[64px] flex items-center">
       <div className="flex items-center sm:justify-between w-full max-w-7xl mx-auto gap-4">
@@ -115,6 +123,7 @@ useEffect(() => {
               placeholder="Search songs, albums, artists"
               value={query}
               onChange={handleInput}
+              onKeyDown={handleEnter}
               onFocus={() => setIsOpen(true)}
               className="w-full bg-transparent text-white placeholder-gray-500 focus:outline-none text-base"
             />
