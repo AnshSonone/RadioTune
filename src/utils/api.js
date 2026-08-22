@@ -1,13 +1,11 @@
 const fetchSongs = async (search) => {
 
-  const apiKey = process.env.NEXT_BACKEND_API || "http://localhost:3000";
-
   // 1. Fix: Return an empty array or null instead of undefined when search is empty
   if (!search || search.trim().length === 0) return [];
 
   try {
     // 2. Fix: 'content-type' belongs inside a 'headers' object, not the root
-    const res = await fetch(`${apiKey}/api/search?q=${encodeURIComponent(search)}`, {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(search)}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
