@@ -76,11 +76,12 @@ useEffect(() => {
   const handleEnter = (e) => {
     if (e.key === "Enter" && query !== "") {
       router.push(`/search?q=${query.trim()}`)
+      setIsOpen(false)
     }
   }
 
   return (
-    <nav className="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-3 relative min-h-[64px] flex items-center">
+    <nav className="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-3 relative min-h-16 flex items-center">
       <div className="flex items-center sm:justify-between w-full max-w-7xl mx-auto gap-4">
         
         {/* LOGO */}
