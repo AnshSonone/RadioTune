@@ -14,7 +14,7 @@ export default function TopResult({ topResult }) {
     dispatch(setTrack(topResult));
   };
 
-  const thumbnailUrl = topResult?.thumbnails?.[0]?.url; // FIX: chain through thumbnails
+  const thumbnailUrl = topResult?.thumbnails?.[1]?.url; // FIX: chain through thumbnails
 
   return (
     <div className="lg:col-span-2">

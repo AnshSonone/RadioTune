@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search as SearchIcon, ArrowLeft, X, Clock, TrendingUp } from 'lucide-react';
+import { Search as SearchIcon, ArrowLeft, X } from 'lucide-react';
 import SearchSuggestion from './SearchSuggestion';
 import { useDispatch } from 'react-redux';
 import { addSuggestion } from '../lib/features/suggestionSlice';
@@ -9,8 +9,6 @@ import Link from 'next/link';
 import { fetchSongs } from '@/utils/api';
 import { useRouter } from 'next/navigation';
 
-const RECENT_SEARCHES = ['Linkin Park', 'Chill Lofi Beats', 'Kendrick Lamar'];
-const TRENDING_SEARCHES = ['Blinding Lights Remix', 'Acoustic Hits 2026'];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +84,7 @@ useEffect(() => {
         
         {/* LOGO */}
         <Link href={'/'}>
-          <div className={`shrink-0 text-white select-none ${isOpen ? 'hidden sm:block' : 'block'}`}>
+          <div className={`shrink-0 text-white select-none border-white border px-2 rounded-md ${isOpen ? 'hidden sm:block' : 'block'}`}>
             <h2 className="text-3xl font-bold inline">R</h2>
             <span className="hidden text-lg sm:inline">adio Tune</span>
           </div>
@@ -146,31 +144,7 @@ useEffect(() => {
           {/* YT Music Overlay Dropdown Controller */}
           {isOpen && (
             <>
-              {query.trim() === '' ? (
-                <div className="absolute top-full left-0 right-0 mt-2 sm:mt-2 bg-gray-800 border border-gray-700 shadow-2xl overflow-hidden max-h-[calc(100vh-70px)] sm:max-h-[70vh] overflow-y-auto py-2 rounded-b-2xl sm:rounded-2xl h-[calc(100vh-60px)] sm:h-auto">
-                  {RECENT_SEARCHES.map((item, index) => (
-                    <button
-                      key={`recent-${index}`}
-                      onClick={() => setQuery(item)}
-                      className="w-full flex items-center gap-4 px-5 py-3 hover:bg-gray-700 text-left text-gray-200 transition-colors"
-                    >
-                      <Clock size={18} className="text-gray-400 shrink-0" />
-                      <span className="truncate text-sm sm:text-base font-medium">{item}</span>
-                    </button>
-                  ))}
-                  <div className="border-t border-gray-700 my-2" />
-                  {TRENDING_SEARCHES.map((item, index) => (
-                    <button
-                      key={`trending-${index}`}
-                      onClick={() => setQuery(item)}
-                      className="w-full flex items-center gap-4 px-5 py-3 hover:bg-gray-700 text-left text-gray-200 transition-colors"
-                    >
-                      <TrendingUp size={18} className="text-gray-400 shrink-0" />
-                      <span className="truncate text-sm sm:text-base font-medium">{item}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
+              {query.trim() !== '' && (
                 suggestions && suggestions.length > 0 && (
                   <SearchSuggestion 
                     suggestions={suggestions} 

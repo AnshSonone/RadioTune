@@ -1,41 +1,34 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { MoreVertical, Music, User, Disc, Play, Clock } from "lucide-react";
+import { Music } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { fetchSongs } from "@/utils/api";
 import TopResult from "../components/TopResult";
 import SongList from "../components/SongList";
 import Loading from "../components/Loading";
+import ArtistList from "../components/ArtistList";
+import AlbumList from "../components/AlbumList";
 
 function SearchResultsInner() {
   const [results, setResults] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
-  const [filtered, setFiltered] = useState([]);
-  const [progress, setProgress] = useState('w-[0%]')
+  const [Songs, setSongs] = useState([]);
+  const [progress, setProgress] = useState("w-[0%]");
   const searchParams = useSearchParams();
   const querySearch = searchParams.get("q") ?? "";
 
   useEffect(() => {
     if (!querySearch.trim()) {
       setResults([]);
-      setFiltered([]);
       return;
     }
 
     const query = async () => {
-      
-      setProgress("w-[60%]")
+      setProgress("w-[60%]");
       const data = await fetchSongs(querySearch);
       setResults(data);
-      const lower = querySearch.toLowerCase().trim();
-
-      const songFiltered = data?.filter((item) =>
-        item?.name?.toLowerCase().includes(lower),
-      );
-
-      setFiltered(songFiltered ?? []);
-      setProgress('w-full')
+      setProgress("w-full");
     };
 
     query();
@@ -51,13 +44,13 @@ function SearchResultsInner() {
   }
 
   const songs = results.filter((i) => i.type === "SONG");
-  const artists = results.filter((i) => i.type === "ARTIST");
+  const artists = results?.filter((i) => i.type === "ARTIST");
   const albums = results.filter((i) => i.type === "ALBUM");
   const topResult = results[0];
 
   return (
     <div className="min-h-screen bg-[#030303] text-white select-none">
-      { progress !== "w-full" && <Loading progress={progress}/>}
+      {progress !== "w-full" && <Loading progress={progress} />}
       <div className="max-w-7xl mx-auto py-3 px-4 md:px-2 ">
         <div className="flex gap-3 overflow-x-auto pb-4 border-b border-zinc-800 scrollbar-none">
           {["All", "Songs", "Artists", "Albums"].map((f) => (
@@ -74,26 +67,40 @@ function SearchResultsInner() {
             </button>
           ))}
         </div>
-        {results.length === 0 && progress === '100%' ? (
+        {results.length === 0 && progress === "w-full" ? (
           <div className="text-center py-24 text-zinc-500">
             No results found matching &quot;{querySearch}&quot;
           </div>
         ) : (
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-1 gap-8">
-            {(activeFilter === "All" || activeFilter === "Artists") && (
-              <div className="flex flex-col gap-8">
-                {activeFilter === "All" && topResult && (
-                  <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
-                    {topResult && progress === "w-full" && <TopResult topResult={topResult} />}
+          <div className="mt-8">
+            {progress === "w-full" && (
+              topResult && <div className="grid grid-cols-1 lg:grid-cols-5 lg:grid-rows-2 gap-8">
+                {/* Top Result — mobile: 1st, desktop: top-left */}
+                <div className="order-1 lg:order-0 lg:col-start-1 lg:col-span-2 lg:row-start-1">
+                  <TopResult topResult={topResult} />
+                </div>
 
-                    <div className="lg:col-span-3">
-                      <h2 className="text-xl font-bold mb-4 text-zinc-200">
-                        Songs
-                      </h2>
-                      {filtered.slice(1).map((song, index) => (
-                        <div key={index}>
-                          <SongList song={song} />
-                        </div>
+                {/* Songs — mobile: 2nd, desktop: right side, parallel to Top Result + Artists */}
+                {(activeFilter === "All" || activeFilter === "Songs") && songs.length > 0 && (
+                <div className="order-2 lg:order-0 lg:col-start-3 lg:col-span-3 lg:row-start-1 lg:row-span-2">
+                  <h2 className="text-xl font-bold mb-4 text-zinc-200">
+                    Songs
+                  </h2>
+                  {songs.slice(1).map((song, index) => (
+                    <SongList key={index} song={song} />
+                  ))}
+                </div>
+                  )}
+
+                {/* Artists — mobile: 3rd, desktop: bottom-left, under Top Result */}
+                {(activeFilter === "Artists" || activeFilter === "All") && artists != [] && (
+                  <div className="order-3 lg:order-0 lg:col-start-1 lg:col-span-2 lg:row-start-2">
+                    <h2 className="text-xl font-bold mb-4 text-zinc-200">
+                      Artists
+                    </h2>
+                    <div className="flex flex-col gap-1">
+                      {artists?.map((artist, idx) => (
+                        <ArtistList artsit={artist} key={idx} />
                       ))}
                     </div>
                   </div>
@@ -103,110 +110,14 @@ function SearchResultsInner() {
           </div>
         )}
 
-        {artists.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-zinc-200">Artists</h2>
-            <div className="flex flex-col gap-1">
-              {artists.map((a, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-2 hover:bg-zinc-900 rounded-xl group cursor-pointer"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-14 h-14 bg-zinc-800 rounded-full flex items-center justify-center shrink-0">
-                      <User size={22} className="text-zinc-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-sm font-semibold truncate">
-                        {a.name}
-                      </h4>
-                      <p className="text-xs text-zinc-400 mt-0.5"></p>
-                    </div>
-                  </div>
-                  <button className="text-zinc-400 hover:text-white p-2 opacity-0 group-hover:opacity-100 transition rounded-full">
-                    <MoreVertical size={18} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div
-          className={`flex flex-col gap-8 ${activeFilter === "All" ? "lg:col-span-2" : "lg:col-span-3"}`}
-        >
-          {(activeFilter === "All" || activeFilter === "Songs") &&
-            songs.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold mb-4 text-zinc-200">Songs</h2>
-                <div className="flex flex-col bg-zinc-900/20 rounded-2xl border border-zinc-900 overflow-hidden">
-                  {songs.map((s, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-4 flex-1 min-w-0"
-                    >
-                      <div className="w-11 h-11 bg-zinc-800 rounded-md flex items-center justify-center relative shrink-0 overflow-hidden">
-                        <Music
-                          size={16}
-                          className="text-zinc-500 group-hover:opacity-0"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center">
-                          <Play size={16} fill="white" />
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-semibold truncate">
-                          {s?.name}
-                        </h4>
-                        <p className="text-xs text-zinc-400 truncate mt-0.5">
-                          {s.artist?.name} • {s?.album?.albumId}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-4 ml-4 shrink-0">
-                        <span className="text-xs text-zinc-500 font-medium hidden sm:flex items-center gap-1">
-                          <Clock size={12} />{" "}
-                          {String(s?.duration / 60)
-                            .slice(0, 4)
-                            .replace(".", ":")}
-                        </span>
-                        <button className="text-zinc-400 hover:text-white p-1.5 rounded-full">
-                          <MoreVertical size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-        </div>
-
         {(activeFilter === "All" || activeFilter === "Albums") &&
-          albums.length > 0 && (
-            <div>
-              <h2 className="text-xl font-bold mb-4 text-zinc-200">Albums</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          albums.length > 0 &&
+          progress === "w-full" && (
+            <div className="mb-22">
+              <h2 className="text-xl font-bold mb-6 text-zinc-200">Albums</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {albums.map((al, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-[#121212]/40 border border-zinc-900 p-4 rounded-xl hover:bg-zinc-900 group cursor-pointer relative"
-                  >
-                    <div className="aspect-square bg-zinc-800 rounded-lg flex items-center justify-center mb-3 overflow-hidden relative">
-                      <Disc
-                        size={36}
-                        className="text-zinc-500 transition duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute bottom-2 right-2 w-8 h-8 bg-white text-black rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
-                        <Play size={14} fill="black" className="ml-0.5" />
-                      </div>
-                    </div>
-                    <h4 className="text-sm font-semibold truncate text-white">
-                      {al.title}
-                    </h4>
-                    <p className="text-xs text-zinc-400 truncate">
-                      {al?.artist?.name} • {al?.Year}
-                    </p>
-                  </div>
+                  <AlbumList al={al} key={idx} />
                 ))}
               </div>
             </div>

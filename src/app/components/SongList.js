@@ -14,7 +14,7 @@ export default function SongList({ song }) {
     dispatch(setTrack(song));
   };
 
-  const thumbnailUrl = song?.thumbnails?.[0]?.url || "/placeholder.png"; // FIX: fallback
+  const thumbnailUrl = song?.thumbnails?.[1]?.url || "/placeholder.png"; // FIX: fallback
 
   return (
     <div className="flex flex-col">
