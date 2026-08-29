@@ -13,7 +13,6 @@ import AlbumList from "../components/AlbumList";
 function SearchResultsInner() {
   const [results, setResults] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
-  const [Songs, setSongs] = useState([]);
   const [progress, setProgress] = useState("w-[0%]");
   const searchParams = useSearchParams();
   const querySearch = searchParams.get("q") ?? "";

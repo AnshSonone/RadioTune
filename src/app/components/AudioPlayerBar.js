@@ -7,6 +7,7 @@ import {
   setVolumeState,
   nextTrack,
   prevTrack,
+  addManyToQueue,
 } from "../lib/features/playerSlice";
 import {
   Play,
@@ -27,7 +28,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import YouTube from "react-youtube";
-import { fetchLyricsData } from "@/utils/api";
+import { fetchLyricsData, fetchNextSongs } from "@/utils/api";
+import QueueList from "./QueueList";
 
 // Turns whatever fetchLyricsData gives us into a consistent
 // [{ time, text }] shape so we can highlight the line that matches
@@ -41,7 +43,9 @@ function normalizeLyrics(raw, duration) {
 
   const first = raw[0];
   const hasTimestamps =
-    first && typeof first === "object" && ("time" in first || "startTime" in first);
+    first &&
+    typeof first === "object" &&
+    ("time" in first || "startTime" in first);
 
   if (hasTimestamps) {
     return raw
@@ -61,6 +65,18 @@ function normalizeLyrics(raw, duration) {
   }));
 }
 
+// Normalizes fetchNextSongs' response into the track shape the rest of
+// the app expects. Adjust the field names here if your unofficial API's
+// actual response uses different keys — this is the one place to change it.
+function normalizeNextSong(t) {
+  return {
+    videoId: t.videoId,
+    name: t.title ?? t.name,
+    artist: { name: t.artists?.[0]?.name ?? t.artist?.name ?? "Unknown" },
+    thumbnails: t.thumbnails ?? t.thumbnail,
+  };
+}
+
 export default function AudioPlayerBar() {
   const dispatch = useDispatch();
 
@@ -76,7 +92,7 @@ export default function AudioPlayerBar() {
     },
   };
 
-  const { currentTrack, isPlaying, volume } = useSelector(
+  const { currentTrack, isPlaying, volume, queue } = useSelector(
     (state) => state.player,
   );
 
@@ -92,13 +108,20 @@ export default function AudioPlayerBar() {
   const [muted, setMuted] = useState(false);
   const [shuffle, setShuffle] = useState(false); // visual only — see note near handleNextClick
   const [repeatMode, setRepeatMode] = useState("off"); // "off" | "one" — implemented locally
-  const [queueScrolled, setQueueScrolled] = useState(false); // shrinks artwork while scrolling the queue list
+  const [queueScrolled, setQueueScrolled] = useState(false); // collapses the header while scrolling the queue list
 
   const ytPlayerRef = useRef(null);
   const lyricsRequestIdRef = useRef(0); // guards against stale/out-of-order lyric responses
-  const queueScrollRef = useRef(null); // scroll container for the queue list (drives the artwork shrink)
+  const queueScrollRef = useRef(null); // scroll container for the queue list (drives the header collapse)
   const lyricsBoxRef = useRef(null); // scroll container for the small in-place lyrics box
   const lyricLineRefs = useRef([]); // DOM refs for each lyric line, so the active one can be scrolled into view
+  const autoQueuedTrackRef = useRef(null); // last track we already fetched "next songs" for — avoids refetching on every render
+  const hasMountedTrackRef = useRef(false); // lets us skip auto-expand for whatever track is already loaded on first mount
+  const queueRef = useRef(queue); // always-current queue snapshot, read inside async callbacks instead of the closed-over `queue` variable
+
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
 
   useEffect(() => {
     let interval;
@@ -119,6 +142,7 @@ export default function AudioPlayerBar() {
 
   useEffect(() => {
     const player = ytPlayerRef.current;
+
     if (!player || typeof player.playVideo !== "function") return;
     if (isPlaying) {
       player.playVideo();
@@ -150,6 +174,19 @@ export default function AudioPlayerBar() {
     };
   }, []);
 
+  // Auto-open the Now Playing panel whenever a *new* track starts — i.e.
+  // whenever the user clicks a song somewhere and currentTrack changes.
+  // Skips the very first mount so it doesn't force the panel open just
+  // because a track was already loaded (e.g. from persisted state).
+  useEffect(() => {
+    if (!currentTrack?.videoId) return;
+    if (!hasMountedTrackRef.current) {
+      hasMountedTrackRef.current = true;
+      return;
+    }
+    setExpanded(true);
+  }, [currentTrack?.videoId]);
+
   // Lyrics now follow whichever track is actually playing: as soon as the
   // track changes we clear the old lyrics, and if the lyrics tab is open we
   // immediately fetch the new track's lyrics. A request id guards against a
@@ -180,10 +217,39 @@ export default function AudioPlayerBar() {
   }, [currentTrack?.videoId, activeTab]);
 
   // Reset the "scrolled" state whenever the queue isn't in view, so the
-  // artwork always comes back to full size the next time it's opened.
+  // header always comes back to full size the next time it's opened.
   useEffect(() => {
     if (activeTab !== "queue" || !expanded) setQueueScrolled(false);
   }, [activeTab, expanded]);
+
+  // Auto-fill the queue with "up next" songs whenever the playing track
+  // changes — keyed only on currentTrack.videoId, so switching tabs or
+  // opening/closing the panel never re-triggers it. Runs once per track
+  // (guarded by autoQueuedTrackRef) and appends via addManyToQueue instead
+  // of replacing the queue, so it never disturbs anything the user already
+  // queued or reordered.
+  useEffect(() => {
+    if (!currentTrack?.videoId) return;
+    if (autoQueuedTrackRef.current === currentTrack.videoId) return;
+    autoQueuedTrackRef.current = currentTrack.videoId;
+
+    fetchNextSongs(currentTrack.videoId)
+      .then((data) => {
+        if (!data?.length) return;
+        const existingIds = new Set(queueRef.current.map((t) => t.videoId));
+        const fresh = data
+          .map(normalizeNextSong)
+          .filter(
+            (t) =>
+              t.videoId &&
+              !existingIds.has(t.videoId) &&
+              t.videoId !== currentTrack.videoId,
+          );
+        if (fresh.length) dispatch(addManyToQueue(fresh));
+      })
+      .catch((err) => console.error("Failed to fetch next songs", err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTrack?.videoId]);
 
   const normalizedLyrics = useMemo(
     () => normalizeLyrics(lyrics, duration),
@@ -209,7 +275,9 @@ export default function AudioPlayerBar() {
     if (!container || !activeEl) return;
 
     const targetTop =
-      activeEl.offsetTop - container.clientHeight / 2 + activeEl.clientHeight / 2;
+      activeEl.offsetTop -
+      container.clientHeight / 2 +
+      activeEl.clientHeight / 2;
     container.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
   }, [activeLyricIndex, activeTab]);
 
@@ -259,8 +327,8 @@ export default function AudioPlayerBar() {
   };
 
   // Scroll handler for the queue list — once the user scrolls past a small
-  // threshold we shrink the artwork to make more room; scrolling back to the
-  // top restores it.
+  // threshold we collapse the header to make more room; scrolling back to
+  // the top restores it.
   const handleQueueScroll = (e) => {
     const top = e.currentTarget.scrollTop;
     setQueueScrolled((prev) => {
@@ -303,9 +371,10 @@ export default function AudioPlayerBar() {
   };
 
   const thumbnailUrl =
-    currentTrack?.thumbnails?.[1 || 0]?.url ||
+    currentTrack?.thumbnails?.[currentTrack?.thumbnails?.length > 1 ? 1 : 0]
+      ?.url ||
     currentTrack?.thumbnails?.url ||
-    "";
+    (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
 
   const VolIcon =
     muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
@@ -328,55 +397,58 @@ export default function AudioPlayerBar() {
         />
       </div>
 
-      {/* ===== MINI BAR ===== */}
-      <div className="fixed bottom-0 inset-x-0 z-70 h-16 sm:h-20 bg-zinc-950 border-t border-zinc-900 text-white">
-        {/* thin progress line, mobile only */}
-        <div className="sm:hidden absolute top-0 left-0 right-0 h-0.75 bg-zinc-800">
-          <div
-            className="h-full bg-white"
-            style={{
-              width: `${duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0}%`,
-            }}
-          />
-        </div>
+      {/* ===== MINI BAR =====
+          Fully hidden (not just visually collapsed) whenever the Now
+          Playing panel is open — the panel now has its own volume slider,
+          so there's no longer a reason to keep this mounted underneath it. */}
+      {!expanded && (
+        <div className="fixed bottom-0 inset-x-0 z-70 h-16 sm:h-20 bg-zinc-950 border-t border-zinc-900 text-white">
+          {/* thin progress line, mobile only */}
+          <div className="sm:hidden absolute top-0 left-0 right-0 h-0.75 bg-zinc-800">
+            <div
+              className="h-full bg-white"
+              style={{
+                width: `${duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0}%`,
+              }}
+            />
+          </div>
 
-        <div className="flex items-center h-full px-3 sm:px-6 gap-3 sm:gap-4">
-          {/* Track info — tap to expand on mobile, static on desktop */}
-          <button
-            onClick={() => setExpanded(true)}
-            className="flex items-center gap-3 min-w-0 flex-1 sm:w-1/4 sm:flex-none text-left"
-          >
-            {thumbnailUrl && (
-              <div className="relative w-11 h-11 sm:w-15 sm:h-15 rounded overflow-hidden shrink-0 bg-zinc-800">
-                <Image
-                  src={thumbnailUrl}
-                  fill
-                  sizes="60px"
-                  className="object-cover"
-                  alt="SongTrackImage"
-                />
+          <div className="flex items-center h-full px-3 sm:px-6 gap-3 sm:gap-4">
+            {/* Track info — tap to expand on mobile, static on desktop */}
+            <button
+              onClick={() => setExpanded(true)}
+              className="flex items-center gap-3 min-w-0 flex-1 sm:w-1/4 sm:flex-none text-left"
+            >
+              {thumbnailUrl && (
+                <div className="relative w-11 h-11 sm:w-15 sm:h-15 rounded overflow-hidden shrink-0 bg-zinc-800">
+                  <Image
+                    src={thumbnailUrl}
+                    fill
+                    sizes="60px"
+                    className="object-cover"
+                    alt="SongTrackImage"
+                  />
+                </div>
+              )}
+              <div className="truncate">
+                <p className="text-sm font-medium truncate">
+                  {currentTrack?.name}
+                </p>
+                <p className="text-xs text-zinc-400 truncate">
+                  {currentTrack?.artist?.name}
+                </p>
               </div>
-            )}
-            <div className="truncate">
-              <p className="text-sm font-medium truncate">
-                {currentTrack?.name}
-              </p>
-              <p className="text-xs text-zinc-400 truncate">
-                {currentTrack?.artist?.name}
-              </p>
-            </div>
-          </button>
+            </button>
 
-          {/* Desktop transport + seek — hidden once the panel is open, so
-              controls only live in one place at a time (avoids duplicate
-              play/pause/skip in both the bar and the floating panel) */}
-          {!expanded && (
+            {/* Desktop transport + seek */}
             <div className="hidden sm:flex flex-col items-center gap-1.5 flex-1 max-w-xl">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setShuffle((s) => !s)}
                   className={
-                    shuffle ? "text-white" : "text-zinc-500 hover:text-zinc-300"
+                    shuffle
+                      ? "text-white"
+                      : "text-zinc-500 hover:text-zinc-300"
                   }
                 >
                   <Shuffle size={16} />
@@ -435,29 +507,21 @@ export default function AudioPlayerBar() {
                 <span>{formatTime(duration)}</span>
               </div>
             </div>
-          )}
 
-          {/* When collapsed on desktop, this spacer keeps the track info
-              pinned left and the right controls pinned right, same as before */}
-          {expanded && <div className="hidden sm:block flex-1" />}
+            {/* Mobile play button */}
+            <button
+              onClick={() => dispatch(setPlaying(!isPlaying))}
+              className="sm:hidden w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shrink-0"
+            >
+              {isPlaying ? (
+                <Pause size={16} fill="black" />
+              ) : (
+                <Play size={16} fill="black" className="ml-0.5" />
+              )}
+            </button>
 
-          {/* Mobile play button */}
-          <button
-            onClick={() => dispatch(setPlaying(!isPlaying))}
-            className="sm:hidden w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shrink-0"
-          >
-            {isPlaying ? (
-              <Pause size={16} fill="black" />
-            ) : (
-              <Play size={16} fill="black" className="ml-0.5" />
-            )}
-          </button>
-
-          {/* Desktop right controls — volume always lives here (the panel
-              has no volume slider), transport/like collapse away when the
-              panel is open since the panel already covers them */}
-          <div className="hidden sm:flex items-center justify-end gap-3 w-1/4">
-            {!expanded && (
+            {/* Desktop right controls */}
+            <div className="hidden sm:flex items-center justify-end gap-3 w-1/4">
               <button onClick={() => toggleLike(currentTrack?.videoId)}>
                 <Heart
                   size={18}
@@ -471,32 +535,34 @@ export default function AudioPlayerBar() {
                   }
                 />
               </button>
-            )}
-            <button
-              onClick={() => setMuted((m) => !m)}
-              className="text-zinc-400 hover:text-white"
-            >
-              <VolIcon size={16} />
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={muted ? 0 : volume}
-              onChange={handleVolume}
-              style={{ background: getVoluneBackground(muted ? 0 : volume, 1) }}
-              className="w-20 h-1 bg-zinc-800 rounded appearance-none cursor-pointer accent-white"
-            />
-            <button
-              onClick={() => setExpanded((e) => !e)}
-              className="text-zinc-400 hover:text-white"
-            >
-              {expanded ? <ChevronDown size={18} /> : <ListMusic size={18} />}
-            </button>
+              <button
+                onClick={() => setMuted((m) => !m)}
+                className="text-zinc-400 hover:text-white"
+              >
+                <VolIcon size={16} />
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={muted ? 0 : volume}
+                onChange={handleVolume}
+                style={{
+                  background: getVoluneBackground(muted ? 0 : volume, 1),
+                }}
+                className="w-20 h-1 bg-zinc-800 rounded appearance-none cursor-pointer accent-white"
+              />
+              <button
+                onClick={() => setExpanded((e) => !e)}
+                className="text-zinc-400 hover:text-white"
+              >
+                {expanded ? <ChevronDown size={18} /> : <ListMusic size={18} />}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ===== EXPANDED NOW PLAYING ===== */}
       <div
@@ -513,7 +579,12 @@ export default function AudioPlayerBar() {
           )}
           <div className="absolute inset-0 bg-black/50" />
 
+          {/* This is the single flex column for the whole panel. Only ONE
+              child below should ever be flex-1 (the queue/lyrics scroll
+              area) — everything above it is shrink-0 so it never fights
+              the queue for space. */}
           <div className="relative h-full flex flex-col text-white">
+            {/* Back/close button row */}
             <div className="flex items-center justify-between px-4 pt-4 sm:pt-3 shrink-0">
               <button
                 onClick={() => setExpanded(false)}
@@ -528,158 +599,243 @@ export default function AudioPlayerBar() {
               <div className="w-8" />
             </div>
 
+            {/* Header: compact row OR full artwork/controls block. This
+                whole wrapper is shrink-0 — its height just animates
+                between the two internal states via max-h. */}
             <div className="flex flex-col items-center px-6 pt-6 sm:pt-4 shrink-0">
-              {activeTab === "queue" ? (
-                thumbnailUrl && (
-                  <div
-                    className={`relative rounded-xl overflow-hidden shadow-2xl transition-all duration-300 ease-out ${
-                      queueScrolled
-                        ? "w-24 h-24 sm:w-21 sm:h-21 mb-2 sm:mb-1.5"
-                        : "w-48 h-48 sm:w-42 sm:h-42 mb-5 sm:mb-3"
-                    }`}
-                  >
-                    <Image
-                      src={thumbnailUrl}
-                      fill
-                      sizes="192px"
-                      className="object-cover"
-                      alt="SongTrackImage"
-                    />
+              {/* Compact header — only visible while scrolling the queue */}
+              <div
+                className={`w-full overflow-hidden transition-all duration-300 ease-out ${
+                  activeTab === "queue" && queueScrolled
+                    ? "max-h-20 opacity-100 mb-2"
+                    : "max-h-0 opacity-0 mb-0 pointer-events-none"
+                }`}
+              >
+                <div className="w-full flex items-center gap-3 pb-3">
+                  {thumbnailUrl && (
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                      <Image
+                        src={thumbnailUrl}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                        alt="SongTrackImage"
+                      />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate">
+                      {currentTrack?.name}
+                    </p>
+                    <p className="text-xs text-zinc-400 truncate">
+                      {currentTrack?.artist?.name}
+                    </p>
                   </div>
-                )
-              ) : (
-                <div
-                  ref={lyricsBoxRef}
-                  className="w-48 h-48 sm:w-40 sm:h-40 mx-auto rounded-xl overflow-y-auto no-scrollbar mb-5 sm:mb-3 px-3 py-3 shrink-0"
-                >
-                  {(() => {
-                    lyricLineRefs.current = [];
-                    return lyricsLoading ? (
-                      <p className="text-sm text-zinc-500 text-center mt-8">
-                        Loading lyrics...
-                      </p>
-                    ) : normalizedLyrics.length !== 0 ? (
-                      normalizedLyrics.map((line, idx) => {
-                        const distance = Math.abs(idx - activeLyricIndex);
-                        const isActive = idx === activeLyricIndex;
-                        return (
-                          <p
-                            key={idx}
-                            ref={(el) => (lyricLineRefs.current[idx] = el)}
-                            className={`text-center py-0.5 transition-all duration-300 ease-out ${
-                              isActive
-                                ? "text-white font-bold text-sm scale-105"
-                                : distance === 1
-                                  ? "text-zinc-300 text-sm"
-                                  : "text-zinc-600 text-sm"
-                            }`}
-                          >
-                            {line.text}
+                  <button
+                    onClick={() => dispatch(setPlaying(!isPlaying))}
+                    className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shrink-0"
+                  >
+                    {isPlaying ? (
+                      <Pause size={14} fill="black" />
+                    ) : (
+                      <Play size={14} fill="black" className="ml-0.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Full block — artwork/lyrics, title, seek bar, transport.
+                  Collapses to zero height while queueScrolled is true. */}
+              <div
+                className={`w-full overflow-hidden transition-all duration-300 ease-out ${
+                  activeTab === "queue" && queueScrolled
+                    ? "max-h-0 opacity-0 pointer-events-none"
+                    : "max-h-150 opacity-100"
+                }`}
+              >
+                {/* Artwork/lyrics box + vertical volume slider, side by side */}
+                <div className="flex items-center justify-center gap-4">
+                  {activeTab === "queue" ? (
+                    thumbnailUrl && (
+                      <div className="relative left-3 w-48 h-48 sm:w-42 sm:h-42 mb-5 sm:mb-3 rounded-xl overflow-hidden shadow-2xl">
+                        <Image
+                          src={thumbnailUrl}
+                          fill
+                          sizes="192px"
+                          className="object-cover"
+                          alt="SongTrackImage"
+                        />
+                      </div>
+                    )
+                  ) : (
+                    <div
+                      ref={lyricsBoxRef}
+                      className="w-48 h-48 sm:w-40 sm:h-40 mx-auto rounded-xl overflow-y-auto no-scrollbar mb-5 sm:mb-3 px-3 py-3 shrink-0"
+                    >
+                      {(() => {
+                        lyricLineRefs.current = [];
+                        return lyricsLoading ? (
+                          <p className="text-sm text-zinc-500 text-center mt-8">
+                            Loading lyrics...
+                          </p>
+                        ) : normalizedLyrics.length !== 0 ? (
+                          normalizedLyrics.map((line, idx) => {
+                            const distance = Math.abs(idx - activeLyricIndex);
+                            const isActive = idx === activeLyricIndex;
+                            return (
+                              <p
+                                key={idx}
+                                ref={(el) => (lyricLineRefs.current[idx] = el)}
+                                className={`text-center py-0.5 transition-all duration-300 ease-out ${
+                                  isActive
+                                    ? "text-white font-bold text-sm scale-105"
+                                    : distance === 1
+                                      ? "text-zinc-300 text-sm"
+                                      : "text-zinc-600 text-sm"
+                                }`}
+                              >
+                                {line.text}
+                              </p>
+                            );
+                          })
+                        ) : (
+                          <p className="text-sm text-zinc-500 text-center mt-8">
+                            Lyrics aren't available for this track yet.
                           </p>
                         );
-                      })
-                    ) : (
-                      <p className="text-sm text-zinc-500 text-center mt-8">
-                        Lyrics aren't available for this track yet.
-                      </p>
-                    );
-                  })()}
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Vertical volume slider — the panel's only volume control
+                      now that the mini bar unmounts while expanded. */}
+                  <div className="flex flex-col items-center gap-2 shrink-0 mb-5 sm:mb-3 relative left-18">
+                    <button
+                      onClick={() => setMuted((m) => !m)}
+                      className="text-zinc-300 hover:text-white"
+                      aria-label={muted ? "Unmute" : "Mute"}
+                    >
+                      <VolIcon size={16} />
+                    </button>
+                    <div className="relative h-40 sm:h-36 w-6">
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={muted ? 0 : volume}
+                        onChange={handleVolume}
+                        style={{
+                          background: getVoluneBackground(muted ? 0 : volume, 1),
+                          width: "9rem",
+                        }}
+                        className="absolute top-1/2 left-1/2 h-1 -translate-x-1/2 -translate-y-1/2 -rotate-90 rounded appearance-none cursor-pointer accent-white"
+                        aria-label="Volume"
+                        aria-orientation="vertical"
+                      />
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div className="w-full flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="text-lg sm:text-base font-bold truncate">
-                    {currentTrack?.name}
-                  </h3>
-                  <p className="text-sm text-zinc-400 truncate">
-                    {currentTrack?.artist?.name}
-                  </p>
+
+                <div className="w-full flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-lg sm:text-base font-bold truncate">
+                      {currentTrack?.name}
+                    </h3>
+                    <p className="text-sm text-zinc-400 truncate">
+                      {currentTrack?.artist?.name}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => toggleLike(currentTrack?.videoId)}
+                    className="shrink-0"
+                  >
+                    <Heart
+                      size={22}
+                      className={
+                        liked.has(currentTrack?.videoId)
+                          ? "text-red-500"
+                          : "text-zinc-400 hover:text-white"
+                      }
+                      fill={
+                        liked.has(currentTrack?.videoId)
+                          ? "currentColor"
+                          : "none"
+                      }
+                    />
+                  </button>
                 </div>
-                <button
-                  onClick={() => toggleLike(currentTrack?.videoId)}
-                  className="shrink-0"
-                >
-                  <Heart
-                    size={22}
+
+                <div className="w-full mt-4">
+                  <input
+                    type="range"
+                    min={0}
+                    max={duration || 0}
+                    value={currentTime ?? 0}
+                    onChange={handleSeek}
+                    style={{
+                      background: getTrackBackground(currentTime, duration),
+                    }}
+                    className="w-full h-1 rounded appearance-none cursor-pointer accent-white"
+                  />
+                  <div className="flex justify-between text-[11px] text-zinc-400 mt-1">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-6 mt-4">
+                  <button
+                    onClick={() => setShuffle((s) => !s)}
                     className={
-                      liked.has(currentTrack?.videoId)
-                        ? "text-red-500"
+                      shuffle ? "text-white" : "text-zinc-400 hover:text-white"
+                    }
+                  >
+                    <Shuffle size={18} />
+                  </button>
+                  <button
+                    onClick={() => dispatch(prevTrack())}
+                    className="text-white hover:scale-105 transition"
+                  >
+                    <SkipBack size={24} fill="currentColor" />
+                  </button>
+                  <button
+                    onClick={() => dispatch(setPlaying(!isPlaying))}
+                    className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition"
+                  >
+                    {isPlaying ? (
+                      <Pause size={24} fill="black" />
+                    ) : (
+                      <Play size={24} fill="black" className="ml-1" />
+                    )}
+                  </button>
+                  <button
+                    onClick={handleNextClick}
+                    className="text-white hover:scale-105 transition"
+                  >
+                    <SkipForward size={24} fill="currentColor" />
+                  </button>
+                  <button
+                    onClick={cycleRepeat}
+                    className={
+                      repeatMode !== "off"
+                        ? "text-white"
                         : "text-zinc-400 hover:text-white"
                     }
-                    fill={
-                      liked.has(currentTrack?.videoId) ? "currentColor" : "none"
-                    }
-                  />
-                </button>
-              </div>
-
-              <div className="w-full mt-4">
-                <input
-                  type="range"
-                  min={0}
-                  max={duration || 0}
-                  value={currentTime ?? 0}
-                  onChange={handleSeek}
-                  style={{
-                    background: getTrackBackground(currentTime, duration),
-                  }}
-                  className="w-full h-1 rounded appearance-none cursor-pointer accent-white"
-                />
-                <div className="flex justify-between text-[11px] text-zinc-400 mt-1">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
+                  >
+                    {repeatMode === "one" ? (
+                      <Repeat1 size={18} />
+                    ) : (
+                      <Repeat size={18} />
+                    )}
+                  </button>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-center gap-6 mt-4">
-                <button
-                  onClick={() => setShuffle((s) => !s)}
-                  className={
-                    shuffle ? "text-white" : "text-zinc-400 hover:text-white"
-                  }
-                >
-                  <Shuffle size={18} />
-                </button>
-                <button
-                  onClick={() => dispatch(prevTrack())}
-                  className="text-white hover:scale-105 transition"
-                >
-                  <SkipBack size={24} fill="currentColor" />
-                </button>
-                <button
-                  onClick={() => dispatch(setPlaying(!isPlaying))}
-                  className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition"
-                >
-                  {isPlaying ? (
-                    <Pause size={24} fill="black" />
-                  ) : (
-                    <Play size={24} fill="black" className="ml-1" />
-                  )}
-                </button>
-                <button
-                  onClick={handleNextClick}
-                  className="text-white hover:scale-105 transition"
-                >
-                  <SkipForward size={24} fill="currentColor" />
-                </button>
-                <button
-                  onClick={cycleRepeat}
-                  className={
-                    repeatMode !== "off"
-                      ? "text-white"
-                      : "text-zinc-400 hover:text-white"
-                  }
-                >
-                  {repeatMode === "one" ? (
-                    <Repeat1 size={18} />
-                  ) : (
-                    <Repeat size={18} />
-                  )}
-                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-6 mt-6 shrink-0">
+            {/* Tabs — sibling of the header, NOT nested inside the
+                collapsing block, so they never get hidden. */}
+            <div className="flex items-center gap-2 px-6 mt-2 shrink-0">
               <button
                 onClick={() => setActiveTab("queue")}
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition ${
@@ -702,45 +858,18 @@ export default function AudioPlayerBar() {
               </button>
             </div>
 
+            {/* Queue list — the ONLY flex-1 element in this column, so it
+                fills exactly whatever height the header + tabs didn't use,
+                and this is the element that actually scrolls. */}
             <div
               ref={queueScrollRef}
               onScroll={handleQueueScroll}
               className="flex-1 min-h-0 mt-3 px-3 pb-6 overflow-y-auto no-scrollbar"
             >
-              {activeTab === "queue" && (
-                <div className="flex flex-col">
-                  {/* Only the current track is known right now — no queue in redux yet.
-                      Once playerSlice has a queue array, map over it here and dispatch
-                      a "playTrackAt(index)" style action on click. */}
-                  <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/10">
-                    {thumbnailUrl && (
-                      <div className="relative w-9 h-9 rounded overflow-hidden shrink-0 bg-zinc-800">
-                        <Image src={thumbnailUrl} fill sizes="36px" className="object-cover" alt="" />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-white font-semibold truncate">{currentTrack?.name}</p>
-                      <p className="text-xs text-zinc-400 truncate">{currentTrack?.artist?.name}</p>
-                    </div>
-                    <div className="flex items-end gap-0.5 h-3 w-4">
-                      {[0, 1, 2].map((i) => (
-                        <span
-                          key={i}
-                          className="eq-bar w-0.75 bg-white rounded-sm"
-                          style={{
-                            animationDelay: `${i * 0.15}s`,
-                            animationPlayState: isPlaying ? "running" : "paused",
-                            height: isPlaying ? undefined : "30%",
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-zinc-500 text-center mt-6 px-4">
-                    Nothing queued yet. Songs you add next will show up here.
-                  </p>
-                </div>
-              )}
+              {/* QueueList reads `queue`/`queueIndex` from Redux itself —
+                  it takes no props and renders the whole list, so it's
+                  never mapped over here. */}
+              {activeTab === "queue" && <QueueList />}
             </div>
           </div>
         </div>

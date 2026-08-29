@@ -11,7 +11,7 @@ export default function SongList({ song }) {
 
   const songPlaying = () => {
     dispatch(setPlaying(true));
-    dispatch(setTrack(song));
+    dispatch(setTrack(song))
   };
 
   const thumbnailUrl = song?.thumbnails?.[1]?.url || "/placeholder.png"; // FIX: fallback

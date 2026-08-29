@@ -135,7 +135,34 @@ const fetchSongsData = async (songName) => {
   }
 };
 
-export { fetchSongs, fetchArtist, fetchAlbumData, fetchLyricsData, fetchSongsData};
+const fetchNextSongs = async (videoId) => {
+
+  if (videoId?.trim() === "") return;
+
+  try{
+
+    const res = await fetch(`/api/upsnext?q=${videoId}`,{
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error("Error while queue")
+    };
+
+    const data = await res.json();
+
+    return data;
+
+  }catch (error) {
+    console.log(error)
+  };
+
+};
+
+export { fetchSongs, fetchArtist, fetchAlbumData, fetchLyricsData, fetchSongsData, fetchNextSongs};
 
 // https://radio-tune-two.vercel.app/
 
