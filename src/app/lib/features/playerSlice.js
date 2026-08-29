@@ -5,7 +5,7 @@ const initialState = {
   queue: [],
   queueIndex: -1, // single source of truth for "where we are" in the queue
   isPlaying: false,
-  volume: 0.3,
+  volume: 1,
 };
 
 const playerSlice = createSlice({
