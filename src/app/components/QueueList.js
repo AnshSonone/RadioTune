@@ -6,6 +6,22 @@ import Image from "next/image";
 import { X, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { playTrackAt, removeFromQueue, reorderQueue } from "../lib/features/playerSlice";
 
+// The queue mixes tracks from different sources that don't agree on a
+// thumbnails shape: search-result tracks carry `thumbnails` as an array of
+// image objects ([{ url }, { url }]), while auto-fetched "up next" tracks
+// (normalized in AudioPlayerBar) often carry it as a plain string URL.
+// This resolves either shape (plus a bare { url } object, just in case)
+// down to a single string, instead of assuming one specific shape.
+function resolveThumbnailUrl(thumbnails) {
+  if (!thumbnails) return "";
+  if (typeof thumbnails === "string") return thumbnails;
+  if (Array.isArray(thumbnails)) {
+    const pick = thumbnails.length > 1 ? thumbnails[1] : thumbnails[0];
+    return typeof pick === "string" ? pick : pick?.url || "";
+  }
+  return thumbnails?.url || "";
+}
+
 // Render as <QueueList /> — no props needed, it reads everything from Redux.
 export default function QueueList() {
   const dispatch = useDispatch();
@@ -65,8 +81,13 @@ export default function QueueList() {
     <div className="flex flex-col gap-1">
       {queue.map((track, idx) => {
         const isActive = idx === queueIndex;
-        const thumbnailUrl =
-          track?.thumbnails || "";
+        // FIXED: previously used `track?.thumbnails || currentTrack?.thumbnails?.[1 || 0]?.url`
+        // — that assigned the raw array/string as-is (never pulling .url
+        // out of an array), AND fell back to the globally *currently
+        // playing* track's thumbnail instead of this row's own track.
+        // resolveThumbnailUrl always returns a plain string for either
+        // shape, using this row's own `track`.
+        const thumbnailUrl = resolveThumbnailUrl(track?.thumbnails);
 
         return (
           <div

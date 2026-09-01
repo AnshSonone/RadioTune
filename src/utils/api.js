@@ -1,3 +1,5 @@
+import YTMusic from "ytmusic-api";
+
 const fetchSongs = async (search) => {
 
   // 1. Fix: Return an empty array or null instead of undefined when search is empty
@@ -162,7 +164,24 @@ const fetchNextSongs = async (videoId) => {
 
 };
 
-export { fetchSongs, fetchArtist, fetchAlbumData, fetchLyricsData, fetchSongsData, fetchNextSongs};
+const fetchHome = async () => {
+
+  try{
+
+    const ytmusic = new YTMusic()
+    await ytmusic.initialize()
+
+    const homeData = await ytmusic.getHomeSections()
+
+    if (homeData.length < 0 ) return [];
+
+    return homeData;
+  }catch (error) {
+    console.log(error)
+  }
+}
+
+export { fetchSongs, fetchArtist, fetchAlbumData, fetchLyricsData, fetchSongsData, fetchNextSongs, fetchHome};
 
 // https://radio-tune-two.vercel.app/
 

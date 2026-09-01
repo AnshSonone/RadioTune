@@ -92,7 +92,7 @@ export default function AudioPlayerBar() {
     },
   };
 
-  const { currentTrack, isPlaying, volume, queue } = useSelector(
+  const { currentTrack, isPlaying, volume, queue, playQueue } = useSelector(
     (state) => state.player,
   );
 
@@ -102,7 +102,7 @@ export default function AudioPlayerBar() {
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
   // ---- new local UI state (not in redux yet) ----
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState("queue");
   const [liked, setLiked] = useState(() => new Set());
   const [muted, setMuted] = useState(false);
@@ -249,7 +249,7 @@ export default function AudioPlayerBar() {
       })
       .catch((err) => console.error("Failed to fetch next songs", err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTrack?.videoId]);
+  }, [currentTrack]);
 
   const normalizedLyrics = useMemo(
     () => normalizeLyrics(lyrics, duration),
@@ -327,7 +327,7 @@ export default function AudioPlayerBar() {
   };
 
   // Scroll handler for the queue list — once the user scrolls past a small
-  // threshold we collapse the header to make more room; scrolling back to
+  // threshold we colalapse the header to make more room; scrolling back to
   // the top restores it.
   const handleQueueScroll = (e) => {
     const top = e.currentTarget.scrollTop;
@@ -371,7 +371,7 @@ export default function AudioPlayerBar() {
   };
 
   const thumbnailUrl =
-    currentTrack?.thumbnails?.[currentTrack?.thumbnails?.length > 1 ? 1 : 0]
+    currentTrack?.thumbnails?.[1]
       ?.url ||
     currentTrack?.thumbnails?.url ||
     (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
@@ -566,7 +566,7 @@ export default function AudioPlayerBar() {
 
       {/* ===== EXPANDED NOW PLAYING ===== */}
       <div
-        className={`fixed z-60 inset-0 sm:inset-auto sm:right-4 sm:top-4 sm:bottom-24 sm:w-100 sm:rounded-2xl overflow-hidden transition-transform duration-300 ease-out  ${
+        className={`fixed z-60 inset-0 sm:inset-auto sm:right-4 sm:top-3 sm:bottom-24 sm:w-100 sm:rounded-2xl overflow-hidden transition-transform duration-300 ease-out md:h-[90%]  ${
           expanded ? "translate-y-0" : "translate-y-full sm:translate-y-[110%]"
         }`}
       >
@@ -625,7 +625,7 @@ export default function AudioPlayerBar() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold truncate">
-                      {currentTrack?.name}
+                      {currentTrack?.name} 
                     </p>
                     <p className="text-xs text-zinc-400 truncate">
                       {currentTrack?.artist?.name}
@@ -654,10 +654,10 @@ export default function AudioPlayerBar() {
                 }`}
               >
                 {/* Artwork/lyrics box + vertical volume slider, side by side */}
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center justify-between gap-4">
                   {activeTab === "queue" ? (
                     thumbnailUrl && (
-                      <div className="relative left-3 w-48 h-48 sm:w-42 sm:h-42 mb-5 sm:mb-3 rounded-xl overflow-hidden shadow-2xl">
+                      <div className="relative w-48 h-48 sm:w-42 sm:h-42 mb-5 sm:mb-3 rounded-xl overflow-hidden shadow-2xl">
                         <Image
                           src={thumbnailUrl}
                           fill
@@ -709,7 +709,7 @@ export default function AudioPlayerBar() {
 
                   {/* Vertical volume slider — the panel's only volume control
                       now that the mini bar unmounts while expanded. */}
-                  <div className="flex flex-col items-center gap-2 shrink-0 mb-5 sm:mb-3 relative left-18">
+                  <div className="flex flex-col items-center gap-2 shrink-0 mb-5 sm:mb-3 ">
                     <button
                       onClick={() => setMuted((m) => !m)}
                       className="text-zinc-300 hover:text-white"
@@ -746,6 +746,7 @@ export default function AudioPlayerBar() {
                       {currentTrack?.artist?.name}
                     </p>
                   </div>
+                  
                   <button
                     onClick={() => toggleLike(currentTrack?.videoId)}
                     className="shrink-0"
@@ -835,7 +836,7 @@ export default function AudioPlayerBar() {
 
             {/* Tabs — sibling of the header, NOT nested inside the
                 collapsing block, so they never get hidden. */}
-            <div className="flex items-center gap-2 px-6 mt-2 shrink-0">
+            <div className="flex items-center gap-2 px-6 mt-6 shrink-0">
               <button
                 onClick={() => setActiveTab("queue")}
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition ${

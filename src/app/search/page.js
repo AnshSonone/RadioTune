@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Music } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { fetchSongs } from "@/utils/api";
@@ -17,15 +17,24 @@ function SearchResultsInner() {
   const searchParams = useSearchParams();
   const querySearch = searchParams.get("q") ?? "";
 
+  // Guards against out-of-order responses: if the user types a new query
+  // before the previous fetchSongs call resolves, and that older request
+  // happens to resolve *after* the newer one, this stops it from
+  // overwriting the results for what's actually in the search box.
+  const searchRequestIdRef = useRef(0);
+
   useEffect(() => {
     if (!querySearch.trim()) {
       setResults([]);
       return;
     }
 
+    const requestId = ++searchRequestIdRef.current;
+
     const query = async () => {
       setProgress("w-[60%]");
       const data = await fetchSongs(querySearch);
+      if (searchRequestIdRef.current !== requestId) return; // stale response, ignore
       setResults(data);
       setProgress("w-full");
     };
@@ -43,9 +52,14 @@ function SearchResultsInner() {
   }
 
   const songs = results.filter((i) => i.type === "SONG");
-  const artists = results?.filter((i) => i.type === "ARTIST");
+  const artists = results.filter((i) => i.type === "ARTIST");
   const albums = results.filter((i) => i.type === "ALBUM");
   const topResult = results[0];
+
+  // Only drop the first song from the list if the Top Result card is
+  // actually showing that same song — otherwise (top result is an artist
+  // or album) every song in `songs` still needs to be listed.
+  const displaySongs = topResult?.type === "SONG" ? songs.slice(1) : songs;
 
   return (
     <div className="min-h-screen bg-[#030303] text-white select-none">
@@ -75,31 +89,31 @@ function SearchResultsInner() {
             {progress === "w-full" && (
               topResult && <div className="grid grid-cols-1 lg:grid-cols-5 lg:grid-rows-2 gap-8">
                 {/* Top Result — mobile: 1st, desktop: top-left */}
-                <div className="order-1 lg:order-0 lg:col-start-1 lg:col-span-2 lg:row-start-1">
+                <div className="order-1 lg:col-start-1 lg:col-span-2 lg:row-start-1">
                   <TopResult topResult={topResult} />
                 </div>
 
                 {/* Songs — mobile: 2nd, desktop: right side, parallel to Top Result + Artists */}
-                {(activeFilter === "All" || activeFilter === "Songs") && songs.length > 0 && (
-                <div className="order-2 lg:order-0 lg:col-start-3 lg:col-span-3 lg:row-start-1 lg:row-span-2">
+                {(activeFilter === "All" || activeFilter === "Songs") && displaySongs.length > 0 && (
+                <div className="order-2 lg:col-start-3 lg:col-span-3 lg:row-start-1 lg:row-span-2">
                   <h2 className="text-xl font-bold mb-4 text-zinc-200">
                     Songs
                   </h2>
-                  {songs.slice(1).map((song, index) => (
-                    <SongList key={index} song={song} />
+                  {displaySongs.map((song, index) => (
+                    <SongList key={song?.videoId ?? index} song={song} />
                   ))}
                 </div>
                   )}
 
                 {/* Artists — mobile: 3rd, desktop: bottom-left, under Top Result */}
-                {(activeFilter === "Artists" || activeFilter === "All") && artists != [] && (
-                  <div className="order-3 lg:order-0 lg:col-start-1 lg:col-span-2 lg:row-start-2">
+                {(activeFilter === "Artists" || activeFilter === "All") && artists.length > 0 && (
+                  <div className="order-3 lg:col-start-1 lg:col-span-2 lg:row-start-2">
                     <h2 className="text-xl font-bold mb-4 text-zinc-200">
                       Artists
                     </h2>
                     <div className="flex flex-col gap-1">
-                      {artists?.map((artist, idx) => (
-                        <ArtistList artsit={artist} key={idx} />
+                      {artists.map((artist, idx) => (
+                        <ArtistList artsit={artist} key={artist?.browseId ?? idx} />
                       ))}
                     </div>
                   </div>
@@ -116,7 +130,7 @@ function SearchResultsInner() {
               <h2 className="text-xl font-bold mb-6 text-zinc-200">Albums</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {albums.map((al, idx) => (
-                  <AlbumList al={al} key={idx} />
+                  <AlbumList al={al} key={al?.browseId ?? idx} />
                 ))}
               </div>
             </div>

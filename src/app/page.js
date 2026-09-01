@@ -1,3 +1,9 @@
+"use client"
+
+import { fetchHome } from "@/utils/api";
+import { useEffect } from "react";
+
+
 
 
 export default function Home() {

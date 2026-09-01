@@ -5,7 +5,7 @@ const initialState = {
   queue: [],
   queueIndex: -1, // single source of truth for "where we are" in the queue
   isPlaying: false,
-  volume: 0.3,
+  volume: 1,
 };
 
 const playerSlice = createSlice({
@@ -36,7 +36,7 @@ const playerSlice = createSlice({
 
     // Append tracks fetched from getUpNext / autoplay, without disturbing playback
     addManyToQueue: (state, action) => {
-      state.queue.push(...action.payload);
+      state.queue.push(state.currentTrack, ...action.payload);
       if (state.queueIndex === -1 && state.queue.length) {
         state.queueIndex = 0;
       }

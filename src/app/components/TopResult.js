@@ -1,13 +1,15 @@
 "use client";
 
-import { Music, User, Play } from "lucide-react";
+import { Music, User, Play, Pause } from "lucide-react";
 import Image from "next/image";
 import { formatDuration } from "../../utils/helperFunc";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setPlaying, setTrack } from "../lib/features/playerSlice";
 
 export default function TopResult({ topResult }) {
   const dispatch = useDispatch();
+
+  const { isPlaying, currentTrack } = useSelector((state) => state.player)
 
   const songPlaying = () => {
     dispatch(setPlaying(true));
@@ -42,9 +44,9 @@ export default function TopResult({ topResult }) {
             />
           )}
         </div>
-        <h3 className="text-3xl font-black truncate text-white">
+        <p className="text-3xl font-black truncate text-white">
           {topResult?.name}
-        </h3>
+        </p>
         <p className="text-sm text-zinc-400 mt-2 flex items-center gap-1.5 font-medium">
           <span className="bg-zinc-800 px-2 py-0.5 rounded-full text-xs uppercase tracking-wider">
             {topResult?.type}
@@ -60,7 +62,7 @@ export default function TopResult({ topResult }) {
           onClick={songPlaying}
           className="absolute bottom-6 right-6 w-12 h-12 bg-white text-black rounded-full flex items-center justify-center shadow-xl"
         >
-          <Play size={20} fill="black" className="ml-0.5" />
+          {isPlaying && (topResult?.videoId === currentTrack?.videoId) ? <Pause size={20} fill="black" className="ml-0.5"/> :<Play size={20} fill="black" className="ml-0.5" />}
         </button>
       </div>
     </div>
