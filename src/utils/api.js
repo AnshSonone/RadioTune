@@ -1,6 +1,6 @@
 import YTMusic from "ytmusic-api";
 
-const fetchSongs = async (search) => {
+const fetchSearch = async (search) => {
 
   // 1. Fix: Return an empty array or null instead of undefined when search is empty
   if (!search || search.trim().length === 0) return [];
@@ -168,20 +168,18 @@ const fetchHome = async () => {
 
   try{
 
-    const ytmusic = new YTMusic()
-    await ytmusic.initialize()
-
-    const homeData = await ytmusic.getHomeSections()
-
-    if (homeData.length < 0 ) return [];
-
-    return homeData;
+    const res = await fetch(`/api/home`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
+    const data = await res.json();
+    return data;
   }catch (error) {
     console.log(error)
   }
 }
 
-export { fetchSongs, fetchArtist, fetchAlbumData, fetchLyricsData, fetchSongsData, fetchNextSongs, fetchHome};
-
-// https://radio-tune-two.vercel.app/
+export { fetchSearch, fetchArtist, fetchAlbumData, fetchLyricsData, fetchSongsData, fetchNextSongs, fetchHome};
 

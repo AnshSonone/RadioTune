@@ -119,10 +119,12 @@ export default function QueueList() {
               />
             </span>
 
-            {thumbnailUrl && (
+            {thumbnailUrl ? (
               <div className="relative w-9 h-9 rounded overflow-hidden shrink-0 bg-zinc-800">
                 <Image src={thumbnailUrl} fill sizes="36px" className="object-cover" alt={track?.name} />
               </div>
+            ) : (
+              <Music size={22} className="text-zinc-500" />
             )}
 
             <div className="min-w-0 flex-1">

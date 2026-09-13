@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, useRef } from "react";
-import { Play } from "lucide-react";
+import { Play, User } from "lucide-react";
 import Image from "next/image";
 import { fetchArtist } from "@/utils/api";
 import SongList from "../components/SongList";
@@ -54,6 +54,8 @@ function ArtistResultInner() {
     fetch();
   }, []);
 
+  const thumbnailUrl = artistResult?.thumbnails?.[3 || 2 || 1 || 0]?.url;
+
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white">
       {progress !== "w-full" ? (
@@ -63,14 +65,16 @@ function ArtistResultInner() {
           {/* Header: artist identity only */}
           <header className="mb-8 flex flex-col items-center text-center lg:mb-12 lg:flex-row lg:items-end lg:gap-8 lg:text-left">
             <div className="relative h-32 w-32 shrink-0 sm:h-36 sm:w-36 lg:h-48 lg:w-48">
-              {artistResult?.thumbnails?.[3]?.url && (
+              {thumbnailUrl ? (
                 <Image
-                  src={artistResult.thumbnails[3].url}
+                  src={thumbnailUrl}
                   fill
                   sizes="(min-width: 1024px) 192px, 144px"
                   alt={artistResult?.name || "artist"}
                   className="rounded-full object-cover"
                 />
+              ) : (
+                <User size={120} className="text-zinc-500 bg-zinc-800 rounded-full p-6 object-cover w-full h-full" />
               )}
             </div>
 
@@ -101,14 +105,16 @@ function ArtistResultInner() {
                     >
                       <div className="flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-3 p-2 hover:bg-zinc-900 rounded-xl group cursor-pointer">
                         <div className="relative w-16 h-16 sm:w-14 sm:h-14 bg-zinc-800 rounded-full overflow-hidden shrink-0">
-                          {artist?.thumbnails?.[0]?.url && (
+                          {artist?.thumbnails ? (
                             <Image
-                              src={artist.thumbnails[0].url}
+                              src={artist.thumbnails[1 || 0]?.url}
                               fill
                               sizes="64px"
                               alt={artist?.name || "artist"}
                               className="object-cover rounded-full"
                             />
+                          ) : (
+                            <User size={32} className="text-zinc-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                           )}
                         </div>
                         <h4 className="text-xs sm:text-sm font-semibold truncate text-center sm:text-left max-w-full">

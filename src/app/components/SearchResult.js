@@ -8,7 +8,7 @@ import TopResult from "../components/TopResult";
 import SongList from "../components/SongList";
 
 export default function SearchResults() {
-  // const searchQuery = useSelector((state) => state.search.query || "");
+  
   const [results, setResults] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [filtered, setFiltered] = useState([]);

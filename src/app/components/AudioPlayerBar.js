@@ -25,6 +25,7 @@ import {
   Repeat1,
   ListMusic,
   Mic2,
+  Music,
 } from "lucide-react";
 import Image from "next/image";
 import YouTube from "react-youtube";
@@ -92,7 +93,7 @@ export default function AudioPlayerBar() {
     },
   };
 
-  const { currentTrack, isPlaying, volume, queue, playQueue } = useSelector(
+  const { currentTrack, isPlaying, volume, queue } = useSelector(
     (state) => state.player,
   );
 
@@ -163,16 +164,6 @@ export default function AudioPlayerBar() {
     player.setVolume(muted ? 0 : Math.round(volume * 100));
   }, [muted]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const onFreeze = () => console.log("Page frozen by browser");
-    const onResume = () => console.log("Page resumed");
-    document.addEventListener("freeze", onFreeze);
-    document.addEventListener("resume", onResume);
-    return () => {
-      document.removeEventListener("freeze", onFreeze);
-      document.removeEventListener("resume", onResume);
-    };
-  }, []);
 
   // Auto-open the Now Playing panel whenever a *new* track starts — i.e.
   // whenever the user clicks a song somewhere and currentTrack changes.
@@ -309,6 +300,7 @@ export default function AudioPlayerBar() {
     }
   };
 
+
   const handleSeek = (e) => {
     const time = parseFloat(e.target.value);
     setCurrentTime(time);
@@ -373,7 +365,6 @@ export default function AudioPlayerBar() {
   const thumbnailUrl =
     currentTrack?.thumbnails?.[1]
       ?.url ||
-    currentTrack?.thumbnails?.url ||
     (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
 
   const VolIcon =
@@ -387,7 +378,7 @@ export default function AudioPlayerBar() {
       `}</style>
 
       {/* HIDDEN AUDIO ENGINE ELEMENT — unchanged */}
-      <div className="pointer-events-none fixed left-[9999px] top-0 h-px w-px overflow-hidden">
+      <div className="absolute pointer-events-none opacity-0 left-0 top-0 w-px h-px overflow-hidden">
         <YouTube
           key="persistent-yt-player"
           videoId={currentTrack?.videoId}
@@ -419,7 +410,7 @@ export default function AudioPlayerBar() {
               onClick={() => setExpanded(true)}
               className="flex items-center gap-3 min-w-0 flex-1 sm:w-1/4 sm:flex-none text-left"
             >
-              {thumbnailUrl && (
+              {thumbnailUrl ? (
                 <div className="relative w-11 h-11 sm:w-15 sm:h-15 rounded overflow-hidden shrink-0 bg-zinc-800">
                   <Image
                     src={thumbnailUrl}
@@ -429,6 +420,8 @@ export default function AudioPlayerBar() {
                     alt="SongTrackImage"
                   />
                 </div>
+              ) : (
+                <Music size={50} className="text-zinc-500 bg-zinc-800 p-3 rounded-md"/>
               )}
               <div className="truncate">
                 <p className="text-sm font-medium truncate">
@@ -611,8 +604,9 @@ export default function AudioPlayerBar() {
                     : "max-h-0 opacity-0 mb-0 pointer-events-none"
                 }`}
               >
-                <div className="w-full flex items-center gap-3 pb-3">
-                  {thumbnailUrl && (
+                <div
+                 className="w-full flex items-center gap-3 pb-3">
+                  {thumbnailUrl ? (
                     <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0">
                       <Image
                         src={thumbnailUrl}
@@ -622,6 +616,8 @@ export default function AudioPlayerBar() {
                         alt="SongTrackImage"
                       />
                     </div>
+                  ) : (
+                    <Music size={20} className="text-zinc-500 bg-zinc-800 p-3 w-10 h-10 rounded-lg" />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold truncate">
@@ -656,7 +652,7 @@ export default function AudioPlayerBar() {
                 {/* Artwork/lyrics box + vertical volume slider, side by side */}
                 <div className="flex items-center justify-between gap-4">
                   {activeTab === "queue" ? (
-                    thumbnailUrl && (
+                    thumbnailUrl ? (
                       <div className="relative w-48 h-48 sm:w-42 sm:h-42 mb-5 sm:mb-3 rounded-xl overflow-hidden shadow-2xl">
                         <Image
                           src={thumbnailUrl}
@@ -666,6 +662,8 @@ export default function AudioPlayerBar() {
                           alt="SongTrackImage"
                         />
                       </div>
+                    ) : (
+                      <Music size={30} className="text-zinc-500 bg-zinc-800 w-48 h-48 p-10 sm:w-42 sm:h-42 sm:mb-3 rounded-xl" />
                     )
                   ) : (
                     <div

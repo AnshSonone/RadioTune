@@ -6,7 +6,7 @@ import SearchSuggestion from './SearchSuggestion';
 import { useDispatch } from 'react-redux';
 import { addSuggestion } from '../lib/features/suggestionSlice';
 import Link from 'next/link';
-import { fetchSongs } from '@/utils/api';
+import { fetchSearch } from '@/utils/api';
 import { useRouter } from 'next/navigation';
 
 
@@ -40,7 +40,7 @@ useEffect(() => {
 
   const delayDebounceFn = setTimeout(async () => {
     try {
-      const data = await fetchSongs(trimmedQuery);
+      const data = await fetchSearch(trimmedQuery);
       
       // 1. Force the response to be an array so loop filters don't crash
       const rawItems = Array.isArray(data) ? data : [];

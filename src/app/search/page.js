@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { Music } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { fetchSongs } from "@/utils/api";
+import { fetchSearch } from "@/utils/api";
 import TopResult from "../components/TopResult";
 import SongList from "../components/SongList";
 import Loading from "../components/Loading";
@@ -18,7 +18,7 @@ function SearchResultsInner() {
   const querySearch = searchParams.get("q") ?? "";
 
   // Guards against out-of-order responses: if the user types a new query
-  // before the previous fetchSongs call resolves, and that older request
+  // before the previous fetchSearch call resolves, and that older request
   // happens to resolve *after* the newer one, this stops it from
   // overwriting the results for what's actually in the search box.
   const searchRequestIdRef = useRef(0);
@@ -33,7 +33,7 @@ function SearchResultsInner() {
 
     const query = async () => {
       setProgress("w-[60%]");
-      const data = await fetchSongs(querySearch);
+      const data = await fetchSearch(querySearch);
       if (searchRequestIdRef.current !== requestId) return; // stale response, ignore
       setResults(data);
       setProgress("w-full");
