@@ -127,7 +127,7 @@ export default function AudioPlayerBar() {
   useEffect(() => {
     let interval;
 
-    if (isPlaying && ytPlayerRef.current) {
+    if (isPlaying) {
       interval = setInterval(() => {
         if (
           ytPlayerRef.current &&
@@ -366,6 +366,7 @@ export default function AudioPlayerBar() {
     currentTrack?.thumbnails?.[1]
       ?.url ||
     (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
+
 
   const VolIcon =
     muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;

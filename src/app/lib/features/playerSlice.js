@@ -36,7 +36,7 @@ const playerSlice = createSlice({
 
     // Append tracks fetched from getUpNext / autoplay, without disturbing playback
     addManyToQueue: (state, action) => {
-      state.queue.push(state.currentTrack, ...action.payload);
+      state.queue.push(...action.payload);
       if (state.queueIndex === -1 && state.queue.length) {
         state.queueIndex = 0;
       }

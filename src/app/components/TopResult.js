@@ -4,7 +4,7 @@ import { Music, User, Play, Pause } from "lucide-react";
 import Image from "next/image";
 import { formatDuration } from "../../utils/helperFunc";
 import { useDispatch, useSelector } from "react-redux";
-import { setPlaying, setTrack } from "../lib/features/playerSlice";
+import { setPlaying, setTrack, playQueue } from "../lib/features/playerSlice";
 
 export default function TopResult({ topResult }) {
   const dispatch = useDispatch();
@@ -14,6 +14,7 @@ export default function TopResult({ topResult }) {
   const songPlaying = () => {
     dispatch(setPlaying(true));
     dispatch(setTrack(topResult));
+    dispatch(playQueue({ tracks: [topResult] }));
   };
 
   const thumbnailUrl = topResult?.thumbnails?.[topResult?.length > 0 ? 1 : 0]?.url; // FIX: chain through thumbnails
