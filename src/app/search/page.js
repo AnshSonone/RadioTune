@@ -44,7 +44,7 @@ function SearchResultsInner() {
 
   if (!querySearch.trim()) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-zinc-500 bg-[#030303]">
+      <div className="theme-surface theme-page flex flex-col items-center justify-center min-h-[60vh] text-[var(--theme-muted)] bg-[var(--theme-bg)]">
         <Music size={48} className="mb-4 text-zinc-700" />
         <p className="text-lg">Type something above to start searching</p>
       </div>
@@ -62,7 +62,7 @@ function SearchResultsInner() {
   const displaySongs = topResult?.type === "SONG" ? songs.slice(1) : songs;
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white select-none">
+    <div className="theme-surface theme-page min-h-screen bg-[var(--theme-bg)] text-[var(--theme-text)] select-none">
       {progress !== "w-full" && <Loading progress={progress} />}
       <div className="max-w-7xl mx-auto py-3 px-4 md:px-2 ">
         <div className="flex gap-3 overflow-x-auto pb-4 border-b border-zinc-800 scrollbar-none">
@@ -81,7 +81,7 @@ function SearchResultsInner() {
           ))}
         </div>
         {results.length === 0 && progress === "w-full" ? (
-          <div className="text-center py-24 text-zinc-500">
+          <div className="text-center py-24 text-[var(--theme-muted)]">
             No results found matching &quot;{querySearch}&quot;
           </div>
         ) : (

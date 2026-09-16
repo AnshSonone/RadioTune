@@ -8,16 +8,34 @@ import { addSuggestion } from '../lib/features/suggestionSlice';
 import Link from 'next/link';
 import { fetchSearch } from '@/utils/api';
 import { usePathname, useRouter } from 'next/navigation';
+import ThemeToggle from './ThemeToggle';
+import Image from 'next/image';
 
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [isLight, setIsLight] = useState(true);
   const containerRef = useRef(null);
   const dispatch = useDispatch();
   const router = useRouter()
   const pathname = usePathname();
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem('radiotune-theme');
+    const shouldUseLight = savedTheme !== 'dark';
+    document.documentElement.dataset.theme = shouldUseLight ? 'light' : 'dark';
+    const frameId = window.requestAnimationFrame(() => setIsLight(shouldUseLight));
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  function toggleTheme() {
+    const nextIsLight = !isLight;
+    setIsLight(nextIsLight);
+    document.documentElement.dataset.theme = nextIsLight ? 'light' : 'dark';
+    window.localStorage.setItem('radiotune-theme', nextIsLight ? 'light' : 'dark');
+  }
 
   // Close interface when clicking outside panel boundaries
   useEffect(() => {
@@ -82,17 +100,22 @@ useEffect(() => {
   }
 
   return (
-    <nav className="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-3 relative min-h-16 flex items-center">
+    <nav className="theme-nav theme-surface border-b px-4 sm:px-6 py-3 relative min-h-16 flex items-center">
       <div className="flex items-center sm:justify-between w-full max-w-7xl mx-auto gap-4">
         
         {/* LOGO */}
         <Link href={'/'}>
-          <div className={`shrink-0 text-white select-none border-white border px-2 rounded-md ${isOpen ? 'hidden sm:block' : 'block'}`}>
-            <h2 className="text-3xl font-bold inline">R</h2>
-            <span className="hidden text-lg sm:inline">adio Tune</span>
+          <div className={`theme-logo shrink-0 flex items-center gap-1.5 select-none ${isOpen ? 'hidden sm:flex' : 'flex'}`}>
+            <Image
+              src="/backgroun.svg"
+              alt="Radio Tune"
+              width={28}
+              height={28}
+              className="h-7 w-7 object-contain"
+            />
+            <span className="hidden text-lg sm:inline font-semibold">Radio Tune</span>
           </div>
         </Link>
-
         {/* CORE INTERACTIVE SEARCH ELEMENT */}
         <div 
           ref={containerRef} 
@@ -105,13 +128,13 @@ useEffect(() => {
           {/* Main Visual Capsule Input Bar */}
           <div
             className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors duration-200 ${
-              isOpen ? 'bg-gray-800' : 'bg-gray-950 border border-gray-800 hover:bg-gray-800/60'
+              isOpen ? 'theme-search-open' : 'theme-search border hover:brightness-95'
             }`}
           >
             {isOpen ? (
               <button 
                 onClick={() => setIsOpen(false)} 
-                className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition shrink-0"
+                className="theme-muted hover:brightness-75 p-1 rounded-full transition shrink-0"
                 aria-label="Back button"
               >
                 <ArrowLeft size={20} />
@@ -127,7 +150,7 @@ useEffect(() => {
               onChange={handleInput}
               onKeyDown={handleEnter}
               onFocus={() => setIsOpen(true)}
-              className="w-full bg-transparent text-white placeholder-gray-500 focus:outline-none text-base"
+              className="theme-input w-full bg-transparent focus:outline-none text-base"
             />
 
             {query && (
@@ -136,7 +159,7 @@ useEffect(() => {
                   setQuery('');
                   setSuggestions([]);
                 }} 
-                className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition shrink-0"
+                className="theme-muted hover:brightness-75 p-1 rounded-full transition shrink-0"
                 aria-label="Clear text input"
               >
                 <X size={20} />
@@ -161,7 +184,9 @@ useEffect(() => {
         </div>
 
         {/* Desktop Layout Spacer Balance Block */}
-        <div className="w-27.5 hidden sm:block shrink-0" />
+        <div className="flex shrink-0 items-center justify-end sm:w-27.5">
+          <ThemeToggle isLight={isLight} onToggle={toggleTheme} />
+        </div>
       </div>
     </nav>
   );
