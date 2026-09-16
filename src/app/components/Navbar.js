@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux';
 import { addSuggestion } from '../lib/features/suggestionSlice';
 import Link from 'next/link';
 import { fetchSearch } from '@/utils/api';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 
 export default function Navbar() {
@@ -17,6 +17,7 @@ export default function Navbar() {
   const containerRef = useRef(null);
   const dispatch = useDispatch();
   const router = useRouter()
+  const pathname = usePathname();
 
   // Close interface when clicking outside panel boundaries
   useEffect(() => {
@@ -65,6 +66,8 @@ useEffect(() => {
 
   return () => clearTimeout(delayDebounceFn);
 }, [query, dispatch]);
+
+  if (pathname === '/') return null;
 
 
   const handleInput = (e) => {
