@@ -100,7 +100,7 @@ useEffect(() => {
   }
 
   return (
-    <nav className="theme-nav theme-surface border-b px-4 sm:px-6 py-3 relative min-h-16 flex items-center">
+    <nav className="theme-nav theme-surface backdrop-blur-md border-b px-4 sm:px-6 py-3 relative min-h-16 flex items-center">
       <div className="flex items-center sm:justify-between w-full max-w-7xl mx-auto gap-4">
         
         {/* LOGO */}
@@ -184,7 +184,7 @@ useEffect(() => {
         </div>
 
         {/* Desktop Layout Spacer Balance Block */}
-        <div className="flex shrink-0 items-center justify-end sm:w-27.5">
+        <div className={`shrink-0 items-center justify-end sm:w-27.5 ${isOpen ? 'hidden sm:flex' : 'flex'}`}>
           <ThemeToggle isLight={isLight} onToggle={toggleTheme} />
         </div>
       </div>

@@ -30,6 +30,21 @@
   --theme-control: #ffffff;
 }
 
+:root[data-theme='dark'] {
+  --background: #101218;
+  --foreground: #f2f4f8;
+  --theme-bg: #101218;
+  --theme-text: #f2f4f8;
+  --theme-heading: #e5e8ef;
+  --theme-muted: #aab2c1;
+  --theme-subtle: #7d8798;
+  --theme-panel: #1a1e27;
+  --theme-panel-strong: #242a35;
+  --theme-border: #343c4b;
+  --theme-hover: #303847;
+  --theme-control: #171b23;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -49,8 +64,11 @@ body {
 }
 
 .theme-nav {
-  background-color: var(--theme-control);
+  background-color: color-mix(in srgb, var(--theme-control) 78%, transparent);
   border-color: var(--theme-border);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 8px 24px rgba(20, 24, 34, 0.08);
 }
 
 .theme-logo {
