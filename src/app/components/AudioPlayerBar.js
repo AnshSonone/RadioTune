@@ -102,7 +102,7 @@ export default function AudioPlayerBar() {
   const [lyrics, setLyrics] = useState([]);
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
-  // ---- new local UI state (not in redux yet) ----
+  // ---- local UI state ----
   const [expanded, setExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState("queue");
   const [liked, setLiked] = useState(() => new Set());
@@ -119,6 +119,12 @@ export default function AudioPlayerBar() {
   const autoQueuedTrackRef = useRef(null); // last track we already fetched "next songs" for — avoids refetching on every render
   const hasMountedTrackRef = useRef(false); // lets us skip auto-expand for whatever track is already loaded on first mount
   const queueRef = useRef(queue); // always-current queue snapshot, read inside async callbacks instead of the closed-over `queue` variable
+
+  // Derived value, safe to compute before currentTrack exists — must be
+  // declared before the Media Session effect below, which depends on it.
+  const thumbnailUrl =
+    currentTrack?.thumbnails?.[1]?.url ||
+    (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
 
   useEffect(() => {
     queueRef.current = queue;
@@ -163,7 +169,6 @@ export default function AudioPlayerBar() {
     if (!player || typeof player.setVolume !== "function") return;
     player.setVolume(muted ? 0 : Math.round(volume * 100));
   }, [muted]); // eslint-disable-line react-hooks/exhaustive-deps
-
 
   // Auto-open the Now Playing panel whenever a *new* track starts — i.e.
   // whenever the user clicks a song somewhere and currentTrack changes.
@@ -272,6 +277,68 @@ export default function AudioPlayerBar() {
     container.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
   }, [activeLyricIndex, activeTab]);
 
+  // Registers this tab as an active media session so mobile/desktop
+  // browsers don't freeze it in the background, and wires up lock-screen /
+  // OS-level play/pause/next/prev controls.
+  useEffect(() => {
+    if (!currentTrack || !("mediaSession" in navigator)) return;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.name,
+      artist: currentTrack.artist?.name || "Unknown",
+      artwork: thumbnailUrl
+        ? [{ src: thumbnailUrl, sizes: "512x512", type: "image/jpeg" }]
+        : [],
+    });
+
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+
+    navigator.mediaSession.setActionHandler("play", () =>
+      dispatch(setPlaying(true)),
+    );
+    navigator.mediaSession.setActionHandler("pause", () =>
+      dispatch(setPlaying(false)),
+    );
+    navigator.mediaSession.setActionHandler("previoustrack", () =>
+      dispatch(prevTrack()),
+    );
+    navigator.mediaSession.setActionHandler("nexttrack", () =>
+      dispatch(nextTrack()),
+    );
+  }, [currentTrack, isPlaying, thumbnailUrl, dispatch]);
+
+  // Safety net for the freeze/wake gap: when the tab becomes visible again,
+  // check whether the YT player already finished the track while we were
+  // frozen (and therefore missed the onStateChange ENDED event), and
+  // manually advance if so. Also re-syncs currentTime immediately since the
+  // polling interval may have been paused while backgrounded.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+
+      const player = ytPlayerRef.current;
+      if (!player || typeof player.getPlayerState !== "function") return;
+
+      if (typeof player.getCurrentTime === "function") {
+        setCurrentTime(player.getCurrentTime());
+      }
+
+      const ENDED = 0;
+      if (player.getPlayerState() === ENDED) {
+        if (repeatMode === "one") {
+          player.seekTo(0, true);
+          player.playVideo();
+        } else {
+          dispatch(nextTrack());
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [repeatMode, dispatch]);
+
   if (!currentTrack) return null;
 
   const onPlayerReady = (event) => {
@@ -300,7 +367,6 @@ export default function AudioPlayerBar() {
     }
   };
 
-
   const handleSeek = (e) => {
     const time = parseFloat(e.target.value);
     setCurrentTime(time);
@@ -319,7 +385,7 @@ export default function AudioPlayerBar() {
   };
 
   // Scroll handler for the queue list — once the user scrolls past a small
-  // threshold we colalapse the header to make more room; scrolling back to
+  // threshold we collapse the header to make more room; scrolling back to
   // the top restores it.
   const handleQueueScroll = (e) => {
     const top = e.currentTarget.scrollTop;
@@ -361,12 +427,6 @@ export default function AudioPlayerBar() {
     const percent = max > 0 ? (value / max) * 100 : 0;
     return `linear-gradient(to right, #001c53 ${percent}%, #27272a ${percent}%)`;
   };
-
-  const thumbnailUrl =
-    currentTrack?.thumbnails?.[1]
-      ?.url ||
-    (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
-
 
   const VolIcon =
     muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;

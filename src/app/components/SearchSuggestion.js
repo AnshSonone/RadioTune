@@ -2,15 +2,17 @@ import { Search as SearchIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function SearchSuggestion({ suggestions, setQuery, setIsOpen }) {
-  if (suggestions.length === 0) return null;
+
+  if (!suggestions || suggestions.length === 0) return null;
+
 
   return (
-    <div className="absolute top-full left-0 right-0 mt-2 sm:mt-2 bg-gray-800 border border-gray-700 shadow-2xl overflow-hidden max-h-[calc(100vh-70px)] sm:max-h-[70vh] overflow-y-auto py-2 z-50 rounded-b-2xl sm:rounded-2xl h-[calc(100vh-60px)] sm:h-auto">
+<div className="absolute top-full left-0 right-0 mt-2 bg-gray-800 border border-gray-700 shadow-2xl max-h-[calc(100vh-70px)] sm:max-h-[70vh] overflow-y-auto py-2 z-70 rounded-b-2xl sm:rounded-2xl">
       {suggestions?.map((item, index) => {
         return (
           <Link
             key={index}
-            href={`/search?q=${item?.name}`}
+            href={`/search?q=${encodeURIComponent(item?.name || item?.artist?.name)}`}
             onClick={() => {
               setQuery(item?.name);
               setIsOpen(false);

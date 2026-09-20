@@ -54,8 +54,8 @@ export default function TopResult({ topResult }) {
           </span>
           {topResult?.artist && (
             <>
-              • <span>{topResult?.artist?.name}</span> •{" "}
-              <span>{formatDuration(topResult?.duration)}</span>
+              • <span>{topResult?.artist?.name}</span> {" "}
+              
             </>
           )}
         </p>

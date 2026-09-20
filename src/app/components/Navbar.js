@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search as SearchIcon, ArrowLeft, X } from 'lucide-react';
 import SearchSuggestion from './SearchSuggestion';
-import { useDispatch } from 'react-redux';
-import { addSuggestion } from '../lib/features/suggestionSlice';
 import Link from 'next/link';
 import { fetchSearch } from '@/utils/api';
 import { usePathname, useRouter } from 'next/navigation';
@@ -16,26 +14,9 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
-  const [isLight, setIsLight] = useState(true);
   const containerRef = useRef(null);
-  const dispatch = useDispatch();
   const router = useRouter()
   const pathname = usePathname();
-
-  useEffect(() => {
-    const savedTheme = window.localStorage.getItem('radiotune-theme');
-    const shouldUseLight = savedTheme !== 'dark';
-    document.documentElement.dataset.theme = shouldUseLight ? 'light' : 'dark';
-    const frameId = window.requestAnimationFrame(() => setIsLight(shouldUseLight));
-    return () => window.cancelAnimationFrame(frameId);
-  }, []);
-
-  function toggleTheme() {
-    const nextIsLight = !isLight;
-    setIsLight(nextIsLight);
-    document.documentElement.dataset.theme = nextIsLight ? 'light' : 'dark';
-    window.localStorage.setItem('radiotune-theme', nextIsLight ? 'light' : 'dark');
-  }
 
   // Close interface when clicking outside panel boundaries
   useEffect(() => {
@@ -71,19 +52,19 @@ useEffect(() => {
       );
 
       // 3. CRITICAL FIX: Only dispatch a clean serializable array copy to Redux
-      if (rawItems.length > 0) {
-        dispatch(addSuggestion(JSON.parse(JSON.stringify(rawItems))));
-      }
+      // if (rawItems.length > 0) {
+      //   dispatch(addSuggestion(JSON.parse(JSON.stringify(rawItems))));
+      // }
       
       setSuggestions(filtered);
     } catch (err) {
       console.error("Failed to parse search payloads:", err);
       setSuggestions([]);
     }
-  }, 300);
+  }, 200);
 
   return () => clearTimeout(delayDebounceFn);
-}, [query, dispatch]);
+}, [query]);
 
   if (pathname === '/') return null;
 
@@ -121,7 +102,7 @@ useEffect(() => {
           ref={containerRef} 
           className={`relative z-50 transition-all duration-200 ${
             isOpen 
-              ? 'absolute inset-x-4 top-5 -translate-y-1/2 sm:static sm:translate-y-0 flex-1 max-w-2xl mx-auto' 
+              ? 'absolute inset-x-4 top-5 -translate-x-2 -translate-y-1/2 sm:static sm:translate-y-0 flex-1 max-w-2xl mx-auto' 
               : 'flex-1 max-w-xs ml-auto sm:ml-auto sm:max-w-2xl sm:mx-auto'
           }`}
         >
@@ -185,7 +166,7 @@ useEffect(() => {
 
         {/* Desktop Layout Spacer Balance Block */}
         <div className={`shrink-0 items-center justify-end sm:w-27.5 ${isOpen ? 'hidden sm:flex' : 'flex'}`}>
-          <ThemeToggle isLight={isLight} onToggle={toggleTheme} />
+          <ThemeToggle />
         </div>
       </div>
     </nav>

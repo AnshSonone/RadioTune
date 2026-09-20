@@ -37,12 +37,12 @@ function AlbumResultInner() {
   const thumbnails = result?.thumbnails?.[3 || 2]?.url;
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white pb-24">
+    <div className="min-h-screen theme-surface theme-page  bg-(--theme-bg) text-(--theme-text) pb-24">
       {progress !== "w-full" ? (
         <Loading progress={progress} />
       ) : (
         <>
-          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 px-4 sm:px-8 pt-10 sm:pt-16 pb-8 bg-linear-to-b from-zinc-800/60 to-[#030303]">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 px-4 sm:px-8 pt-10 sm:pt-16 pb-8">
             <div className="w-40 h-40 sm:w-52 sm:h-52 md:w-60 md:h-60 relative shrink-0 rounded-lg overflow-hidden shadow-2xl bg-zinc-800">
               {thumbnails ? (
                 <Image

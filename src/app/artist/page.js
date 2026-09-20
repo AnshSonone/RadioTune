@@ -57,7 +57,7 @@ function ArtistResultInner() {
   const thumbnailUrl = artistResult?.thumbnails?.[3 || 2 || 1 || 0]?.url;
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white">
+    <div className="min-h-screen theme-surface theme-page  bg-(--theme-bg) text-(--theme-text)">
       {progress !== "w-full" ? (
         <Loading progress={progress} />
       ) : (

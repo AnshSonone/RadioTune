@@ -31,7 +31,7 @@ export default function SongList({ song }) {
           ) : (
             <Play size={16} className="text-white" />
           )}
-          <div className="w-12 h-12 relative shrink-0 rounded-md overflow-hidden bg-zinc-800">
+          <div className="w-12 h-12 relative z-10 shrink-0 rounded-md overflow-hidden bg-zinc-800">
             {thumbnailUrl ? (
               <Image
                 src={thumbnailUrl}
@@ -57,11 +57,6 @@ export default function SongList({ song }) {
               {song?.artist?.name}
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-4 ml-4">
-          <span className="text-sm text-zinc-500 font-mono">
-            {formatDuration(song?.duration)}
-          </span>
         </div>
       </div>
     </div>
