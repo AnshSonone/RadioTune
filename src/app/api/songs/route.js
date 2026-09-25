@@ -13,7 +13,7 @@ export async function GET(request) {
         const ytmusic = new YTMUSIC();
         await ytmusic.initialize();
 
-        const songsData = await ytmusic.getSong(encodeURIComponent(query))
+        const songsData = await ytmusic.searchSongs(encodeURIComponent(query))
 
         if (songsData.length < 0) {
             return NextResponse.json({error: "Songs not found"}, {status: 404})

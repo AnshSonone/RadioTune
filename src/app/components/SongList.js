@@ -4,6 +4,8 @@ import { Pause, Play, Music } from "lucide-react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { playQueue, setPlaying, setTrack } from "../lib/features/playerSlice";
+import { useEffect } from "react";
+import { fetchSongsData } from "@/utils/api";
 
 export default function SongList({ song }) {
   const dispatch = useDispatch();

@@ -100,7 +100,7 @@ function SearchResultsInner() {
                     Songs
                   </h2>
                   {displaySongs.map((song, index) => (
-                    <SongList key={song?.videoId ?? index} song={song} />
+                    <SongList key={index} song={song} />
                   ))}
                 </div>
                   )}

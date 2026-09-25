@@ -119,6 +119,8 @@ export default function AudioPlayerBar() {
   const autoQueuedTrackRef = useRef(null); // last track we already fetched "next songs" for — avoids refetching on every render
   const hasMountedTrackRef = useRef(false); // lets us skip auto-expand for whatever track is already loaded on first mount
   const queueRef = useRef(queue); // always-current queue snapshot, read inside async callbacks instead of the closed-over `queue` variable
+  const playerRef = useRef(null);
+  const audioRef = useRef(null);
 
   // Derived value, safe to compute before currentTrack exists — must be
   // declared before the Media Session effect below, which depends on it.
@@ -277,35 +279,6 @@ export default function AudioPlayerBar() {
     container.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
   }, [activeLyricIndex, activeTab]);
 
-  // Registers this tab as an active media session so mobile/desktop
-  // browsers don't freeze it in the background, and wires up lock-screen /
-  // OS-level play/pause/next/prev controls.
-  useEffect(() => {
-    if (!currentTrack || !("mediaSession" in navigator)) return;
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentTrack.name,
-      artist: currentTrack.artist?.name || "Unknown",
-      artwork: thumbnailUrl
-        ? [{ src: thumbnailUrl, sizes: "512x512", type: "image/jpeg" }]
-        : [],
-    });
-
-    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-
-    navigator.mediaSession.setActionHandler("play", () =>
-      dispatch(setPlaying(true)),
-    );
-    navigator.mediaSession.setActionHandler("pause", () =>
-      dispatch(setPlaying(false)),
-    );
-    navigator.mediaSession.setActionHandler("previoustrack", () =>
-      dispatch(prevTrack()),
-    );
-    navigator.mediaSession.setActionHandler("nexttrack", () =>
-      dispatch(nextTrack()),
-    );
-  }, [currentTrack, isPlaying, thumbnailUrl, dispatch]);
 
   // Safety net for the freeze/wake gap: when the tab becomes visible again,
   // check whether the YT player already finished the track while we were
@@ -338,6 +311,38 @@ export default function AudioPlayerBar() {
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [repeatMode, dispatch]);
+
+   useEffect(() => {
+    if (!currentTrack) return;
+
+    // 1. Kickstart the invisible HTML5 audio mirror
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => {
+        console.log("Waiting for a user gesture to start background audio thread.");
+      });
+    }
+
+    // 2. Set up the Native MediaSession 
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrack.title || "Track Title",
+        artist: currentTrack.artist || "Artist",
+        artwork: [{ src: currentTrack.thumbnailUrl || '', sizes: '512x512', type: 'image/jpeg' }]
+      });
+
+      // 3. Map lock-screen actions directly to the YouTube Player
+      navigator.mediaSession.setActionHandler('play', () => {
+        playerRef.current?.playVideo();
+        audioRef.current?.play();
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        playerRef.current?.pauseVideo();
+        audioRef.current?.pause();
+      });
+    }
+  }, [currentTrack]);
+
 
   if (!currentTrack) return null;
 
@@ -440,6 +445,13 @@ export default function AudioPlayerBar() {
 
       {/* HIDDEN AUDIO ENGINE ELEMENT — unchanged */}
       <div className="absolute pointer-events-none opacity-0 left-0 top-0 w-px h-px overflow-hidden">
+        <audio 
+  ref={audioRef}
+  src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjM2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU2LjQxAAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV"
+  loop
+  className="hidden"
+/>
+
         <YouTube
           key="persistent-yt-player"
           videoId={currentTrack?.videoId}
@@ -620,16 +632,17 @@ export default function AudioPlayerBar() {
 
       {/* ===== EXPANDED NOW PLAYING ===== */}
       <div
-        className={`fixed z-60 inset-0 sm:inset-auto sm:right-4 sm:top-3 sm:bottom-24 sm:w-100 sm:rounded-2xl overflow-hidden transition-transform duration-300 ease-out md:h-[90%]  ${
+        className={`absolute sm:fixed z-60 inset-0 sm:inset-auto sm:right-4 sm:top-3 sm:bottom-24 sm:w-100 sm:rounded-2xl overflow-hidden transition-transform duration-300 ease-out md:h-[90%]  ${
           expanded ? "translate-y-0" : "translate-y-full sm:translate-y-[110%]"
         }`}
       >
+        {/* absolute inset-0 bg-cover bg-center scale-150 blur-xs opacity-40 saturate-150 transition-[background-image] duration-700 */}
         <div className="relative w-full h-full bg-zinc-950 sm:shadow-2xl sm:border sm:border-zinc-800">
           {thumbnailUrl && (
             <div
-              className="absolute inset-0 bg-cover bg-center scale-150 blur-3xl opacity-40 saturate-150 transition-[background-image] duration-700"
+              className="absolute inset-0 bg-cover bg-center scale-100 blur-none opacity-40 saturate-150 transition-[background-image] duration-700"
               style={{ backgroundImage: `url(${thumbnailUrl})` }}
-            />
+            /> 
           )}
           <div className="absolute inset-0 bg-black/50" />
 
