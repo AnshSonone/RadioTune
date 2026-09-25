@@ -61,7 +61,7 @@ useEffect(() => {
       console.error("Failed to parse search payloads:", err);
       setSuggestions([]);
     }
-  }, 200);
+  }, 100);
 
   return () => clearTimeout(delayDebounceFn);
 }, [query]);
