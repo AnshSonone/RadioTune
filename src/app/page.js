@@ -65,6 +65,7 @@ export default function Home() {
         </div>
 
         <section className="relative z-20 max-w-2xl mx-auto px-6 pt-20 sm:pt-28 pb-16 text-center">
+          <span className="text-sm text-[#5B5F6E] font-semibold">Use Brave browser is recommended for the best experience</span>
           <p className="text-sm tracking-wide text-[#5B5F6E] mb-4">
             Turn a half-remembered feeling into a full-blown playlist.
           </p>

@@ -83,13 +83,13 @@ export default function AudioPlayerBar() {
 
   // 1. YouTube API Configuration Options
   const opts = {
-    height: "1",
-    width: "1",
+    height: "0",
+    width: "0",
     playerVars: {
       autoplay: 1,
       controls: 0,
       disablekb: 1,
-      playsinline: 1,
+      playsinline: 0,
     },
   };
 
@@ -119,8 +119,6 @@ export default function AudioPlayerBar() {
   const autoQueuedTrackRef = useRef(null); // last track we already fetched "next songs" for — avoids refetching on every render
   const hasMountedTrackRef = useRef(false); // lets us skip auto-expand for whatever track is already loaded on first mount
   const queueRef = useRef(queue); // always-current queue snapshot, read inside async callbacks instead of the closed-over `queue` variable
-  const playerRef = useRef(null);
-  const audioRef = useRef(null);
 
   // Derived value, safe to compute before currentTrack exists — must be
   // declared before the Media Session effect below, which depends on it.
@@ -312,36 +310,6 @@ export default function AudioPlayerBar() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [repeatMode, dispatch]);
 
-   useEffect(() => {
-    if (!currentTrack) return;
-
-    // 1. Kickstart the invisible HTML5 audio mirror
-    if (audioRef.current) {
-      audioRef.current.play().catch(() => {
-        console.log("Waiting for a user gesture to start background audio thread.");
-      });
-    }
-
-    // 2. Set up the Native MediaSession 
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentTrack.title || "Track Title",
-        artist: currentTrack.artist || "Artist",
-        artwork: [{ src: currentTrack.thumbnailUrl || '', sizes: '512x512', type: 'image/jpeg' }]
-      });
-
-      // 3. Map lock-screen actions directly to the YouTube Player
-      navigator.mediaSession.setActionHandler('play', () => {
-        playerRef.current?.playVideo();
-        audioRef.current?.play();
-      });
-
-      navigator.mediaSession.setActionHandler('pause', () => {
-        playerRef.current?.pauseVideo();
-        audioRef.current?.pause();
-      });
-    }
-  }, [currentTrack]);
 
 
   if (!currentTrack) return null;
@@ -445,12 +413,6 @@ export default function AudioPlayerBar() {
 
       {/* HIDDEN AUDIO ENGINE ELEMENT — unchanged */}
       <div className="absolute pointer-events-none opacity-0 left-0 top-0 w-px h-px overflow-hidden">
-        <audio 
-  ref={audioRef}
-  src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjM2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU2LjQxAAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV"
-  loop
-  className="hidden"
-/>
 
         <YouTube
           key="persistent-yt-player"
@@ -632,17 +594,19 @@ export default function AudioPlayerBar() {
 
       {/* ===== EXPANDED NOW PLAYING ===== */}
       <div
-        className={`absolute sm:fixed z-60 inset-0 sm:inset-auto sm:right-4 sm:top-3 sm:bottom-24 sm:w-100 sm:rounded-2xl overflow-hidden transition-transform duration-300 ease-out md:h-[90%]  ${
+        className={`fixed z-60 inset-0 sm:inset-auto sm:right-4 sm:top-3 sm:bottom-24 sm:w-100 sm:rounded-2xl overflow-hidden transition-transform duration-300 ease-out md:h-[90%]  ${
           expanded ? "translate-y-0" : "translate-y-full sm:translate-y-[110%]"
         }`}
       >
-        {/* absolute inset-0 bg-cover bg-center scale-150 blur-xs opacity-40 saturate-150 transition-[background-image] duration-700 */}
+
+        
+        
         <div className="relative w-full h-full bg-zinc-950 sm:shadow-2xl sm:border sm:border-zinc-800">
           {thumbnailUrl && (
             <div
-              className="absolute inset-0 bg-cover bg-center scale-100 blur-none opacity-40 saturate-150 transition-[background-image] duration-700"
+              className="absolute inset-0 bg-cover bg-center scale-110 blur-xs opacity-40 saturate-150 transition-[background-image] duration-700 "
               style={{ backgroundImage: `url(${thumbnailUrl})` }}
-            /> 
+            />
           )}
           <div className="absolute inset-0 bg-black/50" />
 
@@ -737,45 +701,37 @@ export default function AudioPlayerBar() {
                         />
                       </div>
                     ) : (
-                      <Music size={30} className="text-zinc-500 bg-zinc-800 w-48 h-48 p-10 sm:w-42 sm:h-42 sm:mb-3 rounded-xl" />
+                      <Music size={30} className="text-zinc-500 bg-zinc-800 w-48 h-48 p-10 sm:w-42 sm:h-42 sm:mb-3 rounded-xl opacity-80" />
                     )
                   ) : (
                     <div
-                      ref={lyricsBoxRef}
-                      className="w-48 h-48 sm:w-40 sm:h-40 mx-auto rounded-xl overflow-y-auto no-scrollbar mb-5 sm:mb-3 px-3 py-3 shrink-0"
+                      className="w-48 h-48 sm:w-40 sm:h-40 rounded-xl overflow-y-auto no-scrollbar mb-5 sm:mb-3py-3 shrink-0"
                     >
-                      {(() => {
-                        lyricLineRefs.current = [];
-                        return lyricsLoading ? (
+                      {
+                         lyricsLoading ? (
                           <p className="text-sm text-zinc-500 text-center mt-8">
                             Loading lyrics...
                           </p>
-                        ) : normalizedLyrics.length !== 0 ? (
+                        )
+                         : normalizedLyrics.length !== 0 ? (
                           normalizedLyrics.map((line, idx) => {
-                            const distance = Math.abs(idx - activeLyricIndex);
-                            const isActive = idx === activeLyricIndex;
                             return (
                               <p
                                 key={idx}
-                                ref={(el) => (lyricLineRefs.current[idx] = el)}
-                                className={`text-center py-0.5 transition-all duration-300 ease-out ${
-                                  isActive
-                                    ? "text-white font-bold text-sm scale-105"
-                                    : distance === 1
-                                      ? "text-zinc-300 text-sm"
-                                      : "text-zinc-600 text-sm"
-                                }`}
+                                className="text-center py-0.5 transition-all duration-300 ease-out text-white font-bold text-sm scale-105"
                               >
                                 {line.text}
                               </p>
                             );
                           })
-                        ) : (
+                        )
+                         : (
                           <p className="text-sm text-zinc-500 text-center mt-8">
                             Lyrics aren't available for this track yet.
                           </p>
-                        );
-                      })()}
+                        )
+                      }
+                      
                     </div>
                   )}
 
@@ -942,7 +898,7 @@ export default function AudioPlayerBar() {
               {/* QueueList reads `queue`/`queueIndex` from Redux itself —
                   it takes no props and renders the whole list, so it's
                   never mapped over here. */}
-              {activeTab === "queue" && <QueueList />}
+              <QueueList />
             </div>
           </div>
         </div>
