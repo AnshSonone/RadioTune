@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { User } from "lucide-react";
+import { getBlurPlaceholder } from "@/utils/image-helper";
 
 export default function ArtistList(artist) {
 
@@ -19,6 +20,7 @@ export default function ArtistList(artist) {
           width={100}
           height={100}
           alt="artist"
+          placeholder={getBlurPlaceholder(229, 231, 235)}
           className="rounded-full"
           />
           ) : (

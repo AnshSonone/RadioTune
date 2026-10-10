@@ -29,8 +29,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import YouTube from "react-youtube";
-import { fetchLyricsData, fetchNextSongs } from "@/utils/api";
+import { fetchLyricsData, fetchNextSongs, fetchSongsData } from "@/utils/api";
 import QueueList from "./QueueList";
+import { getBlurPlaceholder } from "@/utils/image-helper";
 
 // Turns whatever fetchLyricsData gives us into a consistent
 // [{ time, text }] shape so we can highlight the line that matches
@@ -101,10 +102,11 @@ export default function AudioPlayerBar() {
   const [duration, setDuration] = useState(0);
   const [lyrics, setLyrics] = useState([]);
   const [lyricsLoading, setLyricsLoading] = useState(false);
+  const [currentTrackData, setCurrentTrackData] = useState(null);
 
   // ---- local UI state ----
   const [expanded, setExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState("queue");
+  const [activeTab, setActiveTab] = useState(null);
   const [liked, setLiked] = useState(() => new Set());
   const [muted, setMuted] = useState(false);
   const [shuffle, setShuffle] = useState(false); // visual only — see note near handleNextClick
@@ -122,9 +124,18 @@ export default function AudioPlayerBar() {
 
   // Derived value, safe to compute before currentTrack exists — must be
   // declared before the Media Session effect below, which depends on it.
-  const thumbnailUrl =
-    currentTrack?.thumbnails?.[1]?.url ||
-    (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
+
+  useEffect(() => {
+    const fetchSong = async () => {
+      const data = await fetchSongsData(currentTrack?.videoId);
+
+      if (data) setCurrentTrackData(data);
+    };
+
+    fetchSong();
+  }, [currentTrack?.videoId]);
+
+  const thumbnailUrl = currentTrackData?.thumbnails?.[3 || 2 || 1]?.url;
 
   useEffect(() => {
     queueRef.current = queue;
@@ -277,7 +288,6 @@ export default function AudioPlayerBar() {
     container.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
   }, [activeLyricIndex, activeTab]);
 
-
   // Safety net for the freeze/wake gap: when the tab becomes visible again,
   // check whether the YT player already finished the track while we were
   // frozen (and therefore missed the onStateChange ENDED event), and
@@ -309,8 +319,6 @@ export default function AudioPlayerBar() {
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [repeatMode, dispatch]);
-
-
 
   if (!currentTrack) return null;
 
@@ -413,13 +421,21 @@ export default function AudioPlayerBar() {
 
       {/* HIDDEN AUDIO ENGINE ELEMENT — unchanged */}
       <div className="absolute pointer-events-none opacity-0 left-0 top-0 w-px h-px overflow-hidden">
-
         <YouTube
           key="persistent-yt-player"
           videoId={currentTrack?.videoId}
           opts={opts}
           onReady={onPlayerReady}
           onStateChange={onPlayerStateChange}
+          onError={(event) => {
+            console.error(
+              "YouTube playback error",
+              event.data,
+              "for",
+              currentTrack?.videoId,
+            );
+            dispatch(nextTrack());
+          }}
         />
       </div>
 
@@ -456,7 +472,10 @@ export default function AudioPlayerBar() {
                   />
                 </div>
               ) : (
-                <Music size={50} className="text-zinc-500 bg-zinc-800 p-3 rounded-md"/>
+                <Music
+                  size={50}
+                  className="text-zinc-500 bg-zinc-800 p-3 rounded-md"
+                />
               )}
               <div className="truncate">
                 <p className="text-sm font-medium truncate">
@@ -474,9 +493,7 @@ export default function AudioPlayerBar() {
                 <button
                   onClick={() => setShuffle((s) => !s)}
                   className={
-                    shuffle
-                      ? "text-white"
-                      : "text-zinc-500 hover:text-zinc-300"
+                    shuffle ? "text-white" : "text-zinc-500 hover:text-zinc-300"
                   }
                 >
                   <Shuffle size={16} />
@@ -598,266 +615,246 @@ export default function AudioPlayerBar() {
           expanded ? "translate-y-0" : "translate-y-full sm:translate-y-[110%]"
         }`}
       >
-
-        
-        
-        <div className="relative w-full h-full bg-zinc-950 sm:shadow-2xl sm:border sm:border-zinc-800">
+        <div className="relative w-full h-full bg-zinc-950 sm:shadow-2xl sm:border sm:border-zinc-800/60 overflow-hidden sm:rounded-2xl transition-all duration-300">
+          {/* Ambient Dynamic Background Layer */}
           {thumbnailUrl && (
-            <div
-              className="absolute inset-0 bg-cover bg-center scale-110 blur-xs opacity-40 saturate-150 transition-[background-image] duration-700 "
-              style={{ backgroundImage: `url(${thumbnailUrl})` }}
-            />
+            <div className="absolute inset-0 transition-all duration-1000 ease-in-out scale-105 pointer-events-none select-none">
+              <Image
+                src={thumbnailUrl}
+                alt="Ambient Track artwork"
+                fill
+                sizes="(max-width: 640px) 100vw, 450px"
+                priority
+                unoptimized
+                className="object-cover blur-2xl saturate-150 brightness-[0.55]"
+              />
+            </div>
           )}
-          <div className="absolute inset-0 bg-black/50" />
 
-          {/* This is the single flex column for the whole panel. Only ONE
-              child below should ever be flex-1 (the queue/lyrics scroll
-              area) — everything above it is shrink-0 so it never fights
-              the queue for space. */}
-          <div className="relative h-full flex flex-col text-white">
-            {/* Back/close button row */}
-            <div className="flex items-center justify-between px-4 pt-4 sm:pt-3 shrink-0">
+          {/* Fluid Mesh Blobs (Optimized with responsive scaling & smooth GPU transforms) */}
+          <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-screen overflow-hidden">
+            <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[70%] sm:w-full rounded-full bg-linear-to-br from-pink-500 to-purple-600 filter blur-[60px] animate-resso-blob-1 transform-gpu" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[110%] h-[60%] sm:w-[90%] rounded-full bg-linear-to-tl from-cyan-500 to-blue-600 filter blur-[70px] animate-resso-blob-2 transform-gpu" />
+          </div>
+
+          {/* Multi-layered Vignette Overlay (Guarantees perfect readability) */}
+          <div className="absolute inset-0 bg-linear-to-b from-zinc-950/40 via-transparent to-zinc-950/90 pointer-events-none" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] pointer-events-none" />
+
+          {/* Foreground Interface */}
+          <div className="relative h-full flex flex-col text-white select-none">
+            {/* Glassmorphic Header */}
+            <div className="flex items-center justify-between px-5 pt-5 sm:pt-4 pb-3 shrink-0 bg-linear-to-b from-black/20 to-transparent">
               <button
                 onClick={() => setExpanded(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/0 hover:bg-white/10 active:scale-90 transition-all duration-200 cursor-pointer"
+                aria-label="Minimize player"
               >
-                <ChevronDown size={20} className="sm:hidden" />
-                <X size={18} className="hidden sm:block" />
+                <ChevronDown
+                  size={20}
+                  className="sm:hidden text-zinc-300 hover:text-white transition-colors"
+                />
+                <X
+                  size={18}
+                  className="hidden sm:block text-zinc-300 hover:text-white transition-colors"
+                />
               </button>
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
                 Now Playing
               </p>
-              <div className="w-8" />
+
+              {/* Visual balance spacer matching the button sizing */}
+              <div className="w-9 h-9" />
             </div>
 
             {/* Header: compact row OR full artwork/controls block. This
                 whole wrapper is shrink-0 — its height just animates
                 between the two internal states via max-h. */}
             <div className="flex flex-col items-center px-6 pt-6 sm:pt-4 shrink-0">
-              {/* Compact header — only visible while scrolling the queue */}
+              {/* 1. Compact header — only visible while scrolling the queue */}
               <div
-                className={`w-full overflow-hidden transition-all duration-300 ease-out ${
-                  activeTab === "queue" && queueScrolled
-                    ? "max-h-20 opacity-100 mb-2"
-                    : "max-h-0 opacity-0 mb-0 pointer-events-none"
+                className={`w-full overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] grid transform-gpu ${
+                  activeTab === "queue"
+                    ? "grid-rows-[1fr] opacity-100 pointer-events-auto"
+                    : "grid-rows-[0fr] opacity-0 pointer-events-none"
                 }`}
               >
-                <div
-                 className="w-full flex items-center gap-3 pb-3">
-                  {thumbnailUrl ? (
-                    <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0">
-                      <Image
-                        src={thumbnailUrl}
-                        fill
-                        sizes="40px"
-                        className="object-cover"
-                        alt="SongTrackImage"
-                      />
-                    </div>
-                  ) : (
-                    <Music size={20} className="text-zinc-500 bg-zinc-800 p-3 w-10 h-10 rounded-lg" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">
-                      {currentTrack?.name} 
-                    </p>
-                    <p className="text-xs text-zinc-400 truncate">
-                      {currentTrack?.artist?.name}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => dispatch(setPlaying(!isPlaying))}
-                    className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shrink-0"
-                  >
-                    {isPlaying ? (
-                      <Pause size={14} fill="black" />
-                    ) : (
-                      <Play size={14} fill="black" className="ml-0.5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Full block — artwork/lyrics, title, seek bar, transport.
-                  Collapses to zero height while queueScrolled is true. */}
-              <div
-                className={`w-full overflow-hidden transition-all duration-300 ease-out ${
-                  activeTab === "queue" && queueScrolled
-                    ? "max-h-0 opacity-0 pointer-events-none"
-                    : "max-h-150 opacity-100"
-                }`}
-              >
-                {/* Artwork/lyrics box + vertical volume slider, side by side */}
-                <div className="flex items-center justify-between gap-4">
-                  {activeTab === "queue" ? (
-                    thumbnailUrl ? (
-                      <div className="relative w-48 h-48 sm:w-42 sm:h-42 mb-5 sm:mb-3 rounded-xl overflow-hidden shadow-2xl">
+                {/* INNER WRAPPER: Essential for CSS Grid height animations */}
+                <div className="min-h-0 w-full">
+                  {/* Margin moved inside the grid wrapper to avoid layout snapping */}
+                  <div className="w-full flex items-center gap-3 pb-3 pt-1 mb-2">
+                    {thumbnailUrl ? (
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0">
                         <Image
                           src={thumbnailUrl}
                           fill
-                          sizes="192px"
+                          sizes="40px"
                           className="object-cover"
                           alt="SongTrackImage"
                         />
                       </div>
                     ) : (
-                      <Music size={30} className="text-zinc-500 bg-zinc-800 w-48 h-48 p-10 sm:w-42 sm:h-42 sm:mb-3 rounded-xl opacity-80" />
-                    )
-                  ) : (
-                    <div
-                      className="w-48 h-48 sm:w-40 sm:h-40 rounded-xl overflow-y-auto no-scrollbar mb-5 sm:mb-3py-3 shrink-0"
+                      <Music
+                        size={20}
+                        className="text-zinc-500 bg-zinc-800 p-3 w-10 h-10 rounded-lg"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate">
+                        {currentTrack?.name}
+                      </p>
+                      <p className="text-xs text-zinc-400 truncate">
+                        {currentTrackData?.artist?.name}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => dispatch(setPlaying(!isPlaying))}
+                      className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shrink-0 hover:scale-105 active:scale-95 transition-transform"
                     >
-                      {
-                         lyricsLoading ? (
+                      {isPlaying ? (
+                        <Pause size={14} fill="black" />
+                      ) : (
+                        <Play size={14} fill="black" className="ml-0.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Full block — artwork/lyrics, title, seek bar, transport */}
+              <div
+                className={`w-full overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] grid transform-gpu ${
+                  activeTab === "queue"
+                    ? "grid-rows-[0fr] opacity-0 pointer-events-none"
+                    : "grid-rows-[1fr] opacity-100 pointer-events-auto"
+                }`}
+              >
+                {/* INNER WRAPPER: Essential for CSS Grid height animations */}
+                <div className="min-h-0 w-full">
+                  {/* Artwork/lyrics box + vertical volume slider, side by side */}
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    {activeTab === "queue" || activeTab === null ? (
+                      thumbnailUrl ? (
+                        <div className="relative w-48 h-48 sm:w-42 sm:h-42 mb-5 sm:mb-3 rounded-xl overflow-hidden shadow-2xl">
+                          <Image
+                            src={thumbnailUrl}
+                            fill
+                            sizes="192px"
+                            className="object-cover"
+                            placeholder={getBlurPlaceholder(229, 231, 235)}
+                            alt="SongTrackImage"
+                          />
+                        </div>
+                      ) : (
+                        <Music
+                          size={30}
+                          className="text-zinc-500 bg-zinc-800 w-48 h-48 p-10 sm:w-42 sm:h-42 sm:mb-3 rounded-xl opacity-80"
+                        />
+                      )
+                    ) : (
+                      <div className="w-48 h-48 sm:w-40 sm:h-40 rounded-xl overflow-y-auto no-scrollbar mb-5 sm:mb-3 py-3 shrink-0">
+                        {lyricsLoading ? (
                           <p className="text-sm text-zinc-500 text-center mt-8">
                             Loading lyrics...
                           </p>
-                        )
-                         : normalizedLyrics.length !== 0 ? (
-                          normalizedLyrics.map((line, idx) => {
-                            return (
-                              <p
-                                key={idx}
-                                className="text-center py-0.5 transition-all duration-300 ease-out text-white font-bold text-sm scale-105"
-                              >
-                                {line.text}
-                              </p>
-                            );
-                          })
-                        )
-                         : (
+                        ) : normalizedLyrics.length !== 0 ? (
+                          normalizedLyrics.map((line, idx) => (
+                            <p
+                              key={idx}
+                              className="text-center py-0.5 transition-all duration-300 ease-out text-white font-bold text-sm scale-105"
+                            >
+                              {line.text}
+                            </p>
+                          ))
+                        ) : (
                           <p className="text-sm text-zinc-500 text-center mt-8">
                             Lyrics aren't available for this track yet.
                           </p>
-                        )
-                      }
-                      
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
 
-                  {/* Vertical volume slider — the panel's only volume control
-                      now that the mini bar unmounts while expanded. */}
-                  <div className="flex flex-col items-center gap-2 shrink-0 mb-5 sm:mb-3 ">
+                    {/* Vertical volume slider */}
+                    <div className="flex flex-col items-center gap-2 shrink-0 mb-5 sm:mb-3">
+                      <button
+                        onClick={() => setMuted((m) => !m)}
+                        className="text-zinc-300 hover:text-white transition-colors"
+                        aria-label={muted ? "Unmute" : "Mute"}
+                      >
+                        <VolIcon size={16} />
+                      </button>
+                      <div className="relative h-40 sm:h-36 w-6">
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={muted ? 0 : volume}
+                          onChange={handleVolume}
+                          style={{
+                            background: getVoluneBackground(
+                              muted ? 0 : volume,
+                              1,
+                            ),
+                            width: "9rem",
+                          }}
+                          className="absolute top-1/2 left-1/2 h-1 -translate-x-1/2 -translate-y-1/2 -rotate-90 rounded appearance-none cursor-pointer accent-white"
+                          aria-label="Volume"
+                          aria-orientation="vertical"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="w-full flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="text-lg sm:text-base font-bold truncate">
+                        {currentTrack?.name}
+                      </h3>
+                      <p className="text-sm text-zinc-400 truncate">
+                        {currentTrackData?.artist?.name}
+                      </p>
+                    </div>
+
                     <button
-                      onClick={() => setMuted((m) => !m)}
-                      className="text-zinc-300 hover:text-white"
-                      aria-label={muted ? "Unmute" : "Mute"}
+                      onClick={() => toggleLike(currentTrack?.videoId)}
+                      className="shrink-0 active:scale-90 transition-transform"
                     >
-                      <VolIcon size={16} />
-                    </button>
-                    <div className="relative h-40 sm:h-36 w-6">
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={muted ? 0 : volume}
-                        onChange={handleVolume}
-                        style={{
-                          background: getVoluneBackground(muted ? 0 : volume, 1),
-                          width: "9rem",
-                        }}
-                        className="absolute top-1/2 left-1/2 h-1 -translate-x-1/2 -translate-y-1/2 -rotate-90 rounded appearance-none cursor-pointer accent-white"
-                        aria-label="Volume"
-                        aria-orientation="vertical"
+                      <Heart
+                        size={22}
+                        className={
+                          liked.has(currentTrack?.videoId)
+                            ? "text-red-500"
+                            : "text-zinc-400 hover:text-white"
+                        }
+                        fill={
+                          liked.has(currentTrack?.videoId)
+                            ? "currentColor"
+                            : "none"
+                        }
                       />
+                    </button>
+                  </div>
+
+                  {/* Margin moved inside the grid wrapper to avoid layout snapping */}
+                  <div className="w-full mt-4 pb-1">
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration || 0}
+                      value={currentTime ?? 0}
+                      onChange={handleSeek}
+                      style={{
+                        background: getTrackBackground(currentTime, duration),
+                      }}
+                      className="w-full h-1 rounded appearance-none cursor-pointer accent-white"
+                    />
+                    <div className="flex justify-between text-[11px] text-zinc-400 mt-1">
+                      <span>{formatTime(currentTime)}</span>
+                      <span>{formatTime(duration)}</span>
                     </div>
                   </div>
-                </div>
-
-                <div className="w-full flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-lg sm:text-base font-bold truncate">
-                      {currentTrack?.name}
-                    </h3>
-                    <p className="text-sm text-zinc-400 truncate">
-                      {currentTrack?.artist?.name}
-                    </p>
-                  </div>
-                  
-                  <button
-                    onClick={() => toggleLike(currentTrack?.videoId)}
-                    className="shrink-0"
-                  >
-                    <Heart
-                      size={22}
-                      className={
-                        liked.has(currentTrack?.videoId)
-                          ? "text-red-500"
-                          : "text-zinc-400 hover:text-white"
-                      }
-                      fill={
-                        liked.has(currentTrack?.videoId)
-                          ? "currentColor"
-                          : "none"
-                      }
-                    />
-                  </button>
-                </div>
-
-                <div className="w-full mt-4">
-                  <input
-                    type="range"
-                    min={0}
-                    max={duration || 0}
-                    value={currentTime ?? 0}
-                    onChange={handleSeek}
-                    style={{
-                      background: getTrackBackground(currentTime, duration),
-                    }}
-                    className="w-full h-1 rounded appearance-none cursor-pointer accent-white"
-                  />
-                  <div className="flex justify-between text-[11px] text-zinc-400 mt-1">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-center gap-6 mt-4">
-                  <button
-                    onClick={() => setShuffle((s) => !s)}
-                    className={
-                      shuffle ? "text-white" : "text-zinc-400 hover:text-white"
-                    }
-                  >
-                    <Shuffle size={18} />
-                  </button>
-                  <button
-                    onClick={() => dispatch(prevTrack())}
-                    className="text-white hover:scale-105 transition"
-                  >
-                    <SkipBack size={24} fill="currentColor" />
-                  </button>
-                  <button
-                    onClick={() => dispatch(setPlaying(!isPlaying))}
-                    className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition"
-                  >
-                    {isPlaying ? (
-                      <Pause size={24} fill="black" />
-                    ) : (
-                      <Play size={24} fill="black" className="ml-1" />
-                    )}
-                  </button>
-                  <button
-                    onClick={handleNextClick}
-                    className="text-white hover:scale-105 transition"
-                  >
-                    <SkipForward size={24} fill="currentColor" />
-                  </button>
-                  <button
-                    onClick={cycleRepeat}
-                    className={
-                      repeatMode !== "off"
-                        ? "text-white"
-                        : "text-zinc-400 hover:text-white"
-                    }
-                  >
-                    {repeatMode === "one" ? (
-                      <Repeat1 size={18} />
-                    ) : (
-                      <Repeat size={18} />
-                    )}
-                  </button>
                 </div>
               </div>
             </div>
@@ -866,7 +863,11 @@ export default function AudioPlayerBar() {
                 collapsing block, so they never get hidden. */}
             <div className="flex items-center gap-2 px-6 mt-6 shrink-0">
               <button
-                onClick={() => setActiveTab("queue")}
+                onClick={() =>
+                  activeTab === null || activeTab === "lyrics"
+                    ? setActiveTab("queue")
+                    : setActiveTab(null)
+                }
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition ${
                   activeTab === "queue"
                     ? "bg-white text-black"

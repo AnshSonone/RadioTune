@@ -1,3 +1,4 @@
+import { getBlurPlaceholder } from "@/utils/image-helper";
 import { Play, Music2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +19,7 @@ export default function SingleList({single}) {
               fill
               sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 15vw"
               alt={single?.name || "single"}
+              placeholder={getBlurPlaceholder(229, 231, 235)}
               className="object-cover"
             />
           ) : (

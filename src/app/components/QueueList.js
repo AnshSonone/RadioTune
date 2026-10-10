@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import Image from "next/image";
 import { X, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { playTrackAt, removeFromQueue, reorderQueue } from "../lib/features/playerSlice";
+import { getBlurPlaceholder } from "@/utils/image-helper";
 
 // The queue mixes tracks from different sources that don't agree on a
 // thumbnails shape: search-result tracks carry `thumbnails` as an array of
@@ -121,7 +122,7 @@ export default function QueueList() {
 
             {thumbnailUrl ? (
               <div className="relative w-9 h-9 rounded overflow-hidden shrink-0 bg-zinc-800">
-                <Image src={thumbnailUrl} fill sizes="36px" className="object-cover" alt={track?.name} />
+                <Image src={thumbnailUrl} fill sizes="36px" className="object-cover" placeholder={getBlurPlaceholder(229, 231, 235)} alt={track?.name} />
               </div>
             ) : (
               <Music size={22} className="text-zinc-500" />

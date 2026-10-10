@@ -4,6 +4,7 @@ import { Pause, Play, Music } from "lucide-react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { playQueue, setPlaying, setTrack } from "../lib/features/playerSlice";
+import { getBlurPlaceholder } from "@/utils/image-helper";
 
 export default function SongList({ song }) {
   const dispatch = useDispatch();
@@ -37,6 +38,7 @@ export default function SongList({ song }) {
                 width={52}
                 height={52}
                 alt="Tile"
+                placeholder={getBlurPlaceholder(229, 231, 235)}
                 loading="eager"
                 className="object-cover"
               />

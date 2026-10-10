@@ -1,3 +1,4 @@
+import { getBlurPlaceholder } from "@/utils/image-helper";
 import { Play, Disc } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +17,7 @@ export default function AlbumList(al) {
               fill
               sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 15vw"
               alt={al?.al?.name || "album"}
+              placeholder={getBlurPlaceholder(229, 231, 235)}
               className="object-cover"
             />
           ) : (

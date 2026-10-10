@@ -4,6 +4,7 @@ import { Music, User, Play, Pause } from "lucide-react";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { setPlaying, setTrack, playQueue } from "../lib/features/playerSlice";
+import { getBlurPlaceholder } from "@/utils/image-helper";
 
 export default function TopResult({ topResult }) {
   const dispatch = useDispatch();
@@ -42,6 +43,7 @@ export default function TopResult({ topResult }) {
               width={100}
               height={100}
               alt="Cover"
+              placeholder={getBlurPlaceholder(229, 231, 235)}
               loading="eager"
               className="object-cover"
             />
