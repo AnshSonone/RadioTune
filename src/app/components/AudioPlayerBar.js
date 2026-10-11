@@ -482,7 +482,7 @@ export default function AudioPlayerBar() {
                   {currentTrack?.name}
                 </p>
                 <p className="text-xs text-zinc-400 truncate">
-                  {currentTrack?.artist?.name}
+                  {currentTrackData?.artist?.name}
                 </p>
               </div>
             </button>
@@ -775,86 +775,132 @@ export default function AudioPlayerBar() {
                       </div>
                     )}
 
-                    {/* Vertical volume slider */}
-                    <div className="flex flex-col items-center gap-2 shrink-0 mb-5 sm:mb-3">
-                      <button
-                        onClick={() => setMuted((m) => !m)}
-                        className="text-zinc-300 hover:text-white transition-colors"
-                        aria-label={muted ? "Unmute" : "Mute"}
-                      >
-                        <VolIcon size={16} />
-                      </button>
-                      <div className="relative h-40 sm:h-36 w-6">
-                        <input
-                          type="range"
-                          min={0}
-                          max={1}
-                          step={0.01}
-                          value={muted ? 0 : volume}
-                          onChange={handleVolume}
-                          style={{
-                            background: getVoluneBackground(
-                              muted ? 0 : volume,
-                              1,
-                            ),
-                            width: "9rem",
-                          }}
-                          className="absolute top-1/2 left-1/2 h-1 -translate-x-1/2 -translate-y-1/2 -rotate-90 rounded appearance-none cursor-pointer accent-white"
-                          aria-label="Volume"
-                          aria-orientation="vertical"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="w-full flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-lg sm:text-base font-bold truncate">
-                        {currentTrack?.name}
-                      </h3>
-                      <p className="text-sm text-zinc-400 truncate">
-                        {currentTrackData?.artist?.name}
-                      </p>
-                    </div>
-
+                    {/* Vertical volume slider — the panel's only volume control
+                      now that the mini bar unmounts while expanded. */}
+                  <div className="flex flex-col items-center gap-2 shrink-0 mb-5 sm:mb-3 ">
                     <button
-                      onClick={() => toggleLike(currentTrack?.videoId)}
-                      className="shrink-0 active:scale-90 transition-transform"
+                      onClick={() => setMuted((m) => !m)}
+                      className="text-zinc-300 hover:text-white"
+                      aria-label={muted ? "Unmute" : "Mute"}
                     >
-                      <Heart
-                        size={22}
-                        className={
-                          liked.has(currentTrack?.videoId)
-                            ? "text-red-500"
-                            : "text-zinc-400 hover:text-white"
-                        }
-                        fill={
-                          liked.has(currentTrack?.videoId)
-                            ? "currentColor"
-                            : "none"
-                        }
-                      />
+                      <VolIcon size={16} />
                     </button>
+                    <div className="relative h-40 sm:h-36 w-6">
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={muted ? 0 : volume}
+                        onChange={handleVolume}
+                        style={{
+                          background: getVoluneBackground(muted ? 0 : volume, 1),
+                          width: "9rem",
+                        }}
+                        className="absolute top-1/2 left-1/2 h-1 -translate-x-1/2 -translate-y-1/2 -rotate-90 rounded appearance-none cursor-pointer accent-white"
+
+                        aria-label="Volume"
+                        aria-orientation="vertical"
+                      />
+                    </div>
                   </div>
+                </div>
+
+                <div className="w-full flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-lg sm:text-base font-bold truncate">
+                      {currentTrack?.name}
+                    </h3>
+                    <p className="text-sm text-zinc-400 truncate">
+                      {currentTrackData?.artist?.name}
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={() => toggleLike(currentTrack?.videoId)}
+                    className="shrink-0"
+                  >
+                    <Heart
+                      size={22}
+                      className={
+                        liked.has(currentTrack?.videoId)
+                          ? "text-red-500"
+                          : "text-zinc-400 hover:text-white"
+                      }
+                      fill={
+                        liked.has(currentTrack?.videoId)
+                          ? "currentColor"
+                          : "none"
+                      }
+                    />
+                  </button>
+                </div>
 
                   {/* Margin moved inside the grid wrapper to avoid layout snapping */}
-                  <div className="w-full mt-4 pb-1">
-                    <input
-                      type="range"
-                      min={0}
-                      max={duration || 0}
-                      value={currentTime ?? 0}
-                      onChange={handleSeek}
-                      style={{
-                        background: getTrackBackground(currentTime, duration),
-                      }}
-                      className="w-full h-1 rounded appearance-none cursor-pointer accent-white"
-                    />
-                    <div className="flex justify-between text-[11px] text-zinc-400 mt-1">
-                      <span>{formatTime(currentTime)}</span>
-                      <span>{formatTime(duration)}</span>
-                    </div>
+                  <div className="w-full mt-4">
+                  <input
+                    type="range"
+                    min={0}
+                    max={duration || 0}
+                    value={currentTime ?? 0}
+                    onChange={handleSeek}
+                    style={{
+                      background: getTrackBackground(currentTime, duration),
+                    }}
+                    className="w-full h-1 rounded appearance-none cursor-pointer accent-white"
+                  />
+                  <div className="flex justify-between text-[11px] text-zinc-400 mt-1">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-6 mt-4">
+                  <button
+                    onClick={() => setShuffle((s) => !s)}
+                    className={
+                      shuffle ? "text-white" : "text-zinc-400 hover:text-white"
+                    }
+                  >
+                    <Shuffle size={18} />
+                  </button>
+                  <button
+                    onClick={() => dispatch(prevTrack())}
+                    className="text-white hover:scale-105 transition"
+                  >
+                    <SkipBack size={24} fill="currentColor" />
+                  </button>
+                  <button
+                    onClick={() => dispatch(setPlaying(!isPlaying))}
+                    className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition"
+                  >
+                    {isPlaying ? (
+                      <Pause size={24} fill="black" />
+                    ) : (
+                      <Play size={24} fill="black" className="ml-1" />
+                    )}
+                  </button>
+                  <button
+                    onClick={handleNextClick}
+                    className="text-white hover:scale-105 transition"
+                  >
+                    <SkipForward size={24} fill="currentColor" />
+                  </button>
+                  <button
+                    onClick={cycleRepeat}
+                    className={
+                      repeatMode !== "off"
+                        ? "text-white"
+                        : "text-zinc-400 hover:text-white"
+                    }
+                  >
+                    {repeatMode === "one" ? (
+                      <Repeat1 size={18} />
+                    ) : (
+                      <Repeat size={18} />
+                    )}
+                  </button>
+                </div>
                 </div>
               </div>
             </div>
@@ -877,7 +923,10 @@ export default function AudioPlayerBar() {
                 <ListMusic size={14} /> Queue
               </button>
               <button
-                onClick={() => setActiveTab("lyrics")}
+                onClick={() => activeTab === null || activeTab === 'queue'
+                  ? setActiveTab('lyrics')
+                  : setActiveTab(null)
+                }
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition ${
                   activeTab === "lyrics"
                     ? "bg-white text-black"
