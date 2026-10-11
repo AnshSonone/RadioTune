@@ -102,7 +102,7 @@ export default function AudioPlayerBar() {
   const [duration, setDuration] = useState(0);
   const [lyrics, setLyrics] = useState([]);
   const [lyricsLoading, setLyricsLoading] = useState(false);
-  const [currentTrackData, setCurrentTrackData] = useState(null);
+  const [currentTrackData, setcurrentTrackData] = useState(null);
 
   // ---- local UI state ----
   const [expanded, setExpanded] = useState(true);
@@ -127,15 +127,18 @@ export default function AudioPlayerBar() {
     const fetchSong = async () => {
       const data = await fetchSongsData(currentTrack?.videoId);
 
-      if (data) setCurrentTrackData(data);
+      if (data) setcurrentTrackData(data);
+      console.log(currentTrackData)
     };
 
     fetchSong();
-  }, [currentTrack?.videoId]);
+  }, [currentTrack]);  
 
-  const thumbnailUrl = currentTrackData?.thumbnails?.[3]?.url ||
-  currentTrackData?.thumbnails?.[2]?.url ||
-  currentTrack?.thumbnails?.[1].url
+  const thumbnailUrl = 
+    currentTrack?.thumbnails?.[1]?.url ||
+    (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
+
+  const artistName = currentTrackData?.artist?.name || currentTrack?.artist?.name
 
   useEffect(() => {
     queueRef.current = queue;
@@ -466,7 +469,7 @@ export default function AudioPlayerBar() {
                   {currentTrack?.name}
                 </p>
                 <p className="text-xs text-zinc-400 truncate">
-                  {currentTrackData?.artist?.name}
+                  {artistName}
                 </p>
               </div>
             </button>
@@ -689,7 +692,7 @@ export default function AudioPlayerBar() {
                         {currentTrack?.name}
                       </p>
                       <p className="text-xs text-zinc-400 truncate">
-                        {currentTrackData?.artist?.name}
+                        {artistName}
                       </p>
                     </div>
                     <button
@@ -746,7 +749,7 @@ export default function AudioPlayerBar() {
                           normalizedLyrics.map((line, idx) => (
                             <p
                               key={idx}
-                              className="text-center py-0.5 transition-all duration-300 ease-out text-white font-bold text-sm scale-105"
+                              className="text-center py-0.5 transition-all duration-300 ease-out text-white font-bold text-sm scale-100"
                             >
                               {line.text}
                             </p>
@@ -796,7 +799,7 @@ export default function AudioPlayerBar() {
                       {currentTrack?.name}
                     </h3>
                     <p className="text-sm text-zinc-400 truncate">
-                      {currentTrackData?.artist?.name}
+                      {artistName}
                     </p>
                   </div>
                   
@@ -891,7 +894,7 @@ export default function AudioPlayerBar() {
 
             {/* Tabs — sibling of the header, NOT nested inside the
                 collapsing block, so they never get hidden. */}
-            <div className="flex items-center gap-2 px-6 mt-6 shrink-0">
+            <div className="flex items-center gap-2 px-6 mt-2 shrink-0">
               <button
                 onClick={() =>
                   activeTab === null || activeTab === "lyrics"
