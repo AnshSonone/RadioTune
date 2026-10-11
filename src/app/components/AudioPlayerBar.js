@@ -134,7 +134,8 @@ export default function AudioPlayerBar() {
   }, [currentTrack?.videoId]);
 
   const thumbnailUrl = currentTrackData?.thumbnails?.[3]?.url ||
-  currentTrackData?.thumbnails?.[2]?.url
+  currentTrackData?.thumbnails?.[2]?.url ||
+  currentTrack?.thumbnails?.[1].url
 
   useEffect(() => {
     queueRef.current = queue;
