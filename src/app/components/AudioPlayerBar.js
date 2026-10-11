@@ -111,11 +111,9 @@ export default function AudioPlayerBar() {
   const [muted, setMuted] = useState(false);
   const [shuffle, setShuffle] = useState(false); // visual only — see note near handleNextClick
   const [repeatMode, setRepeatMode] = useState("off"); // "off" | "one" — implemented locally
-  const [queueScrolled, setQueueScrolled] = useState(false); // collapses the header while scrolling the queue list
 
   const ytPlayerRef = useRef(null);
   const lyricsRequestIdRef = useRef(0); // guards against stale/out-of-order lyric responses
-  const queueScrollRef = useRef(null); // scroll container for the queue list (drives the header collapse)
   const lyricsBoxRef = useRef(null); // scroll container for the small in-place lyrics box
   const lyricLineRefs = useRef([]); // DOM refs for each lyric line, so the active one can be scrolled into view
   const autoQueuedTrackRef = useRef(null); // last track we already fetched "next songs" for — avoids refetching on every render
@@ -135,7 +133,8 @@ export default function AudioPlayerBar() {
     fetchSong();
   }, [currentTrack?.videoId]);
 
-  const thumbnailUrl = currentTrackData?.thumbnails?.[3 || 2 || 1]?.url;
+  const thumbnailUrl = currentTrackData?.thumbnails?.[3]?.url ||
+  currentTrackData?.thumbnails?.[2]?.url
 
   useEffect(() => {
     queueRef.current = queue;
@@ -223,11 +222,6 @@ export default function AudioPlayerBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack?.videoId, activeTab]);
 
-  // Reset the "scrolled" state whenever the queue isn't in view, so the
-  // header always comes back to full size the next time it's opened.
-  useEffect(() => {
-    if (activeTab !== "queue" || !expanded) setQueueScrolled(false);
-  }, [activeTab, expanded]);
 
   // Auto-fill the queue with "up next" songs whenever the playing track
   // changes — keyed only on currentTrack.videoId, so switching tabs or
@@ -364,18 +358,7 @@ export default function AudioPlayerBar() {
     setMuted(false);
     dispatch(setVolumeState(val));
   };
-
-  // Scroll handler for the queue list — once the user scrolls past a small
-  // threshold we collapse the header to make more room; scrolling back to
-  // the top restores it.
-  const handleQueueScroll = (e) => {
-    const top = e.currentTarget.scrollTop;
-    setQueueScrolled((prev) => {
-      if (top > 12 && !prev) return true;
-      if (top <= 12 && prev) return false;
-      return prev;
-    });
-  };
+  
 
   // NOTE: shuffle is a visual toggle for now. Once playerSlice has a
   // queue/order concept, wire this to actually randomize next-track order
@@ -941,8 +924,6 @@ export default function AudioPlayerBar() {
                 fills exactly whatever height the header + tabs didn't use,
                 and this is the element that actually scrolls. */}
             <div
-              ref={queueScrollRef}
-              onScroll={handleQueueScroll}
               className="flex-1 min-h-0 mt-3 px-3 pb-6 overflow-y-auto no-scrollbar"
             >
               {/* QueueList reads `queue`/`queueIndex` from Redux itself —
