@@ -82,10 +82,6 @@ function ArtistResultInner() {
               <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl lg:mt-0 lg:text-6xl">
                 {artistResult?.name}
               </h1>
-              <button className="mt-5 flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90 lg:mt-6 lg:px-8 lg:py-3 lg:text-base">
-                <Play size={16} fill="black" />
-                Shuffle play
-              </button>
             </div>
           </header>
 

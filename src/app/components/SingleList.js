@@ -9,7 +9,7 @@ export default function SingleList({single}) {
 
   return (
     <Link
-      href={`/album?q=${single?.aibumId}`}
+      href={`/album?q=${single?.albumId}`}
     >
       <div className="w-full bg-[#121212]/40 border border-zinc-900 p-3 sm:p-4 rounded-xl hover:bg-zinc-900 transition-colors group cursor-pointer">
         <div className="relative w-full aspect-square bg-zinc-800 rounded-lg overflow-hidden mb-3">

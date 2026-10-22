@@ -7,10 +7,14 @@ import { Play, Clock, Disc } from "lucide-react";
 import { fetchAlbumData } from "@/utils/api";
 import SongList from "../components/SongList";
 import Loading from "../components/Loading";
+import { useDispatch } from "react-redux";
+import { playQueue, setPlaying, setTrack } from "../lib/features/playerSlice";
 
 function AlbumResultInner() {
   const searchParams = useSearchParams();
   const querySearch = searchParams.get("q");
+
+  const dispatch = useDispatch()
 
   const [result, setResult] = useState(null);
   const [progress, setProgress] = useState("w-[0%]");
@@ -75,14 +79,7 @@ function AlbumResultInner() {
                   : ""}
               </p>
             </div>
-          </div>
-
-          {/* Play button bar */}
-          <div className="px-4 sm:px-8 py-4 flex items-center gap-4">
-            <button className="w-12 h-12 sm:w-14 sm:h-14 bg-white    hover:scale-105 transition rounded-full flex items-center justify-center shadow-lg">
-              <Play size={20} fill="black" className="ml-1 text-black" />
-            </button>
-          </div>
+          </div>  
 
           {/* Track list */}
           <div className="px-2 sm:px-8">

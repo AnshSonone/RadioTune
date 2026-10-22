@@ -54,7 +54,7 @@ function SearchResultsInner() {
   const songs = results.filter((i) => i.type === "SONG");
   const artists = results.filter((i) => i.type === "ARTIST");
   const albums = results.filter((i) => i.type === "ALBUM");
-  const topResult = results[0];
+  const topResult = songs[0];
 
   // Only drop the first song from the list if the Top Result card is
   // actually showing that same song — otherwise (top result is an artist

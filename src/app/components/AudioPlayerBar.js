@@ -106,15 +106,17 @@ export default function AudioPlayerBar() {
 
   // ---- local UI state ----
   const [expanded, setExpanded] = useState(true);
-  const [activeTab, setActiveTab] = useState(null);
+  const [activeTab, setActiveTab] = useState("queue");
   const [liked, setLiked] = useState(() => new Set());
   const [muted, setMuted] = useState(false);
   const [shuffle, setShuffle] = useState(false); // visual only — see note near handleNextClick
   const [repeatMode, setRepeatMode] = useState("off"); // "off" | "one" — implemented locally
+  const [queueScrolled, setQueueScrolled] = useState(false)
 
   const ytPlayerRef = useRef(null);
   const lyricsRequestIdRef = useRef(0); // guards against stale/out-of-order lyric responses
   const lyricsBoxRef = useRef(null); // scroll container for the small in-place lyrics box
+  const queueScrollRef = useRef(null)
   const lyricLineRefs = useRef([]); // DOM refs for each lyric line, so the active one can be scrolled into view
   const autoQueuedTrackRef = useRef(null); // last track we already fetched "next songs" for — avoids refetching on every render
   const hasMountedTrackRef = useRef(false); // lets us skip auto-expand for whatever track is already loaded on first mount
@@ -138,7 +140,7 @@ export default function AudioPlayerBar() {
     currentTrack?.thumbnails?.[1]?.url ||
     (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
 
-  const artistName = currentTrackData?.artist?.name || currentTrack?.artist?.name
+  const artistName = currentTrackData?.artist?.name?.slice(0, 44) || currentTrack?.artist?.name?.slice(0, 44)
 
   useEffect(() => {
     queueRef.current = queue;
@@ -205,7 +207,7 @@ export default function AudioPlayerBar() {
     setLyrics([]);
     setLyricsLoading(false);
 
-    if (activeTab !== "lyrics" || !currentTrack?.videoId) return;
+    if (activeTab !== "lyrics" || !currentTrack?.videoId || lyrics.length > 0) return;
 
     const requestId = ++lyricsRequestIdRef.current;
     setLyricsLoading(true);
@@ -318,6 +320,11 @@ export default function AudioPlayerBar() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [repeatMode, dispatch]);
 
+
+  useEffect(() => {
+    if (activeTab !== "queue" || !expanded) setQueueScrolled(false);
+  }, [activeTab, expanded]);
+
   if (!currentTrack) return null;
 
   const onPlayerReady = (event) => {
@@ -362,7 +369,15 @@ export default function AudioPlayerBar() {
     setMuted(false);
     dispatch(setVolumeState(val));
   };
-  
+
+  const handleQueueScroll = (e) => {
+    const top = e.currentTarget.scrollTop;
+    setQueueScrolled((prev) => {
+      if (top > 12 && !prev) return true;
+      if (top <= 12 && prev) return false;
+      return prev;
+    });
+  };
 
   // NOTE: shuffle is a visual toggle for now. Once playerSlice has a
   // queue/order concept, wire this to actually randomize next-track order
@@ -469,7 +484,7 @@ export default function AudioPlayerBar() {
                   {currentTrack?.name}
                 </p>
                 <p className="text-xs text-zinc-400 truncate">
-                  {artistName}
+                  {artistName}...
                 </p>
               </div>
             </button>
@@ -662,7 +677,7 @@ export default function AudioPlayerBar() {
               {/* 1. Compact header — only visible while scrolling the queue */}
               <div
                 className={`w-full overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] grid transform-gpu ${
-                  activeTab === "queue"
+                  activeTab === "queue" && queueScrolled
                     ? "grid-rows-[1fr] opacity-100 pointer-events-auto"
                     : "grid-rows-[0fr] opacity-0 pointer-events-none"
                 }`}
@@ -670,7 +685,7 @@ export default function AudioPlayerBar() {
                 {/* INNER WRAPPER: Essential for CSS Grid height animations */}
                 <div className="min-h-0 w-full">
                   {/* Margin moved inside the grid wrapper to avoid layout snapping */}
-                  <div className="w-full flex items-center gap-3 pb-3 pt-1 mb-2">
+                  <div className="w-full flex items-center gap-3 pt-1 ">
                     {thumbnailUrl ? (
                       <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0">
                         <Image
@@ -692,7 +707,7 @@ export default function AudioPlayerBar() {
                         {currentTrack?.name}
                       </p>
                       <p className="text-xs text-zinc-400 truncate">
-                        {artistName}
+                        {artistName}...
                       </p>
                     </div>
                     <button
@@ -712,7 +727,7 @@ export default function AudioPlayerBar() {
               {/* 2. Full block — artwork/lyrics, title, seek bar, transport */}
               <div
                 className={`w-full overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] grid transform-gpu ${
-                  activeTab === "queue"
+                  activeTab === "queue" && queueScrolled
                     ? "grid-rows-[0fr] opacity-0 pointer-events-none"
                     : "grid-rows-[1fr] opacity-100 pointer-events-auto"
                 }`}
@@ -799,7 +814,7 @@ export default function AudioPlayerBar() {
                       {currentTrack?.name}
                     </h3>
                     <p className="text-sm text-zinc-400 truncate">
-                      {artistName}
+                      {artistName}...
                     </p>
                   </div>
                   
@@ -894,13 +909,9 @@ export default function AudioPlayerBar() {
 
             {/* Tabs — sibling of the header, NOT nested inside the
                 collapsing block, so they never get hidden. */}
-            <div className="flex items-center gap-2 px-6 mt-2 shrink-0">
+            <div className="flex items-center gap-2 px-6 mt-6 shrink-0">
               <button
-                onClick={() =>
-                  activeTab === null || activeTab === "lyrics"
-                    ? setActiveTab("queue")
-                    : setActiveTab(null)
-                }
+                onClick={() => setActiveTab("queue")}
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition ${
                   activeTab === "queue"
                     ? "bg-white text-black"
@@ -910,10 +921,7 @@ export default function AudioPlayerBar() {
                 <ListMusic size={14} /> Queue
               </button>
               <button
-                onClick={() => activeTab === null || activeTab === 'queue'
-                  ? setActiveTab('lyrics')
-                  : setActiveTab(null)
-                }
+                onClick={() => setActiveTab("lyrics")}
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition ${
                   activeTab === "lyrics"
                     ? "bg-white text-black"
@@ -928,6 +936,8 @@ export default function AudioPlayerBar() {
                 fills exactly whatever height the header + tabs didn't use,
                 and this is the element that actually scrolls. */}
             <div
+              ref={queueScrollRef}
+              onScroll={handleQueueScroll}
               className="flex-1 min-h-0 mt-3 px-3 pb-6 overflow-y-auto no-scrollbar"
             >
               {/* QueueList reads `queue`/`queueIndex` from Redux itself —
