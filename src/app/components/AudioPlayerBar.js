@@ -12,6 +12,7 @@ import {
 import {
   Play,
   Pause,
+  LoaderCircle,
   SkipForward,
   SkipBack,
   Volume2,
@@ -414,6 +415,8 @@ export default function AudioPlayerBar() {
   const VolIcon =
     muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
+  const now = new Date()
+
   return (
     <>
       <style>{`
@@ -510,7 +513,8 @@ export default function AudioPlayerBar() {
                   onClick={() => dispatch(setPlaying(!isPlaying))}
                   className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition"
                 >
-                  {isPlaying ? (
+                  {!duration ? <LoaderCircle size={14} className="animate-spin"/> :
+                  isPlaying ? (
                     <Pause size={16} fill="black" />
                   ) : (
                     <Play size={16} fill="black" className="ml-0.5" />
@@ -560,7 +564,8 @@ export default function AudioPlayerBar() {
               onClick={() => dispatch(setPlaying(!isPlaying))}
               className="sm:hidden w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shrink-0"
             >
-              {isPlaying ? (
+              {!duration ? <LoaderCircle size={30} className="animate-spin"/> :
+              isPlaying ? (
                 <Pause size={16} fill="black" />
               ) : (
                 <Play size={16} fill="black" className="ml-0.5" />
@@ -714,7 +719,8 @@ export default function AudioPlayerBar() {
                       onClick={() => dispatch(setPlaying(!isPlaying))}
                       className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shrink-0 hover:scale-105 active:scale-95 transition-transform"
                     >
-                      {isPlaying ? (
+                      {!duration ? <LoaderCircle size={14} className="animate-spin"/> :
+                      isPlaying ? (
                         <Pause size={14} fill="black" />
                       ) : (
                         <Play size={14} fill="black" className="ml-0.5" />
@@ -876,7 +882,8 @@ export default function AudioPlayerBar() {
                     onClick={() => dispatch(setPlaying(!isPlaying))}
                     className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition"
                   >
-                    {isPlaying ? (
+                    {!duration ? <LoaderCircle size={30} className="animate-spin" /> :
+                    isPlaying ? (
                       <Pause size={24} fill="black" />
                     ) : (
                       <Play size={24} fill="black" className="ml-1" />
