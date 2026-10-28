@@ -484,7 +484,7 @@ export default function AudioPlayerBar() {
               )}
               <div className="truncate">
                 <p className="text-sm font-medium truncate">
-                  {currentTrack?.name}
+                  {currentTrack?.name.slice(0, 38)}...
                 </p>
                 <p className="text-xs text-zinc-400 truncate">
                   {artistName}...
@@ -709,7 +709,7 @@ export default function AudioPlayerBar() {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold truncate">
-                        {currentTrack?.name}
+                        {currentTrack?.name.slice(0, 30)}...
                       </p>
                       <p className="text-xs text-zinc-400 truncate">
                         {artistName}...
@@ -817,7 +817,7 @@ export default function AudioPlayerBar() {
                 <div className="w-full flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="text-lg sm:text-base font-bold truncate">
-                      {currentTrack?.name}
+                      {currentTrack?.name.slice(0, 30)}...
                     </h3>
                     <p className="text-sm text-zinc-400 truncate">
                       {artistName}...
