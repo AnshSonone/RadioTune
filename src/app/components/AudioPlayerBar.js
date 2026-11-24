@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -141,7 +143,7 @@ export default function AudioPlayerBar() {
     currentTrack?.thumbnails?.[1]?.url ||
     (typeof currentTrack?.thumbnails === "string" ? currentTrack.thumbnails : "");
 
-  const artistName = currentTrackData?.artist?.name?.slice(0, 44) || currentTrack?.artist?.name?.slice(0, 44)
+  const artistName = currentTrackData?.artist?.name?.slice(0, 44) || currentTrack?.artist?.name?.slice(0, 44);
 
   useEffect(() => {
     queueRef.current = queue;
